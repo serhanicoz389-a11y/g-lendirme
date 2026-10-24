@@ -9,7 +9,7 @@ değiştirirsiniz; değişiklik müşterinin ekranına anında yansır.
 **Müşteri sayfası** (QR ile açılır, telefona uygun)
 - Kategorilere ayrılmış ürün ve fiyat listesi
 - Ürün arama (ad veya barkod), kategori filtreleme
-- **Barkod okutma:** "Barkod" düğmesine basıp ürünün barkodunu kameraya tutunca ürün ve fiyatı ekrana gelir
+- **Barkod / karekod okutma:** "Okut" düğmesine basıp kamerayı ürünün koduna tutmak yeterli. Düz barkodlar (EAN-13, EAN-8, UPC, Code 128, Code 39…) ve kare kodlar (QR, DataMatrix, Aztec, PDF417) kendiliğinden algılanır; kamera açık kaldıkça her yeni ürünün fiyatı ekranda güncellenir
 - Satıştan kaldırdığınız ürünler görünmez
 
 **Yönetim paneli** (`/admin`, şifreli)
@@ -18,6 +18,7 @@ değiştirirsiniz; değişiklik müşterinin ekranına anında yansır.
 - **Kategoriler:** Yeni kategori ekleme, adını düzeltme, sırasını değiştirme, silme (içindeki ürünler başka kategoriye taşınır).
 - **Toplu fiyat değiştirme:** Tüm ürünlere veya bir kategoriye % zam/indirim, istenen yuvarlamayla (50 kuruş, tam lira…).
 - **Excel'e aktar / Excel'den yükle:** Listeyi indirip Excel'de düzenleyip geri yükleyebilirsiniz.
+- **Karekod etiketi yazdır:** Listede görünen ürünler için A4'e etiket basar. Müşteri bu etiketi telefonunun kendi kamerasıyla okuttuğunda ürünün güncel fiyatı açılır (uygulama içinde "Okut" demeye gerek yok). Etikette fiyat yazmaz, böylece fiyat değişince yeniden basmak gerekmez.
 - **Fiyat listesi yazdır:** Satıştaki tüm ürünlerin A4 fiyat listesi.
 - **Sipariş Formu:** Müşteri adı, ürünler, miktarlar, iskonto → numaralı, imza alanlı A4 sipariş formu çıktısı.
 - **QR Kod:** Adres bir kez "sabitlenir" ve QR bir daha değişmez. Afiş olarak yazdırılır veya SVG indirilir. Bilgisayarın adresi değişirse panel ve siyah pencere uyarı verir.
@@ -42,10 +43,13 @@ set ADMIN_PASSWORD=yeni-sifreniz
 
 ## Barkodla fiyat görme hakkında
 
-Telefon tarayıcıları canlı kamerayı yalnızca güvenli (https) sitelerde açar. Uygulama dükkân Wi-Fi'ında
+Telefon tarayıcıları canlı kamerayı yalnızca güvenli (https) sitelerde açar.
+Bu bir tarayıcı güvenlik kuralıdır, uygulamadan kapatılamaz. Uygulama dükkân Wi-Fi'ında
 (`http://192.168…`) çalışırken müşteri "Barkod" düğmesine basınca **fotoğraf çekerek okutma** kullanılır:
 telefonun kamerası açılır, barkodun fotoğrafı çekilir ve ürün fiyatıyla gösterilir.
-Uygulama internette (https) yayınlandığında canlı kamera ile anında okutma da çalışır.
+Uygulama internette (https) yayınlandığında canlı kamera ile anında, otomatik okutma da çalışır.
+Wi-Fi'da otomatik okutma için en pratik yol **karekod etiketleridir**: telefonun kendi kamerası karekodu
+kendiliğinden tanır ve ürünün fiyat sayfasını açar.
 
 ## Müşteriler sayfaya nasıl ulaşır?
 

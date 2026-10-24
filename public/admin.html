@@ -86,6 +86,11 @@
     .doc .sign { display: flex; justify-content: space-between; margin-top: 50px; }
     .doc .sign div { width: 40%; border-top: 1px solid #000; text-align: center; padding-top: 4px; }
     .doc h2 { font-size: 14px; margin: 14px 0 4px; border-bottom: 1px solid #000; }
+    .labels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+    .label { border: 1px dashed #999; padding: 3mm; text-align: center; break-inside: avoid; }
+    .label svg { width: 30mm; height: 30mm; display: block; margin: 0 auto; }
+    .label .l-name { font-weight: 700; font-size: 11px; line-height: 1.2; min-height: 2.4em; }
+    .label .l-shop { font-size: 9px; color: #555; margin-top: 1mm; }
     .poster { text-align: center; padding-top: 30mm; }
     .poster h1 { font-size: 44px; margin: 0; }
     .poster .sub { font-size: 20px; margin: 4px 0 30px; }
@@ -130,6 +135,7 @@
         <button class="btn primary" id="p-add">+ Yeni Ürün</button>
         <button class="btn" id="p-bulk">% Toplu Fiyat Değiştir</button>
         <button class="btn" id="p-print">🖨 Fiyat Listesi Yazdır</button>
+        <button class="btn" id="p-labels" title="Listede görünen ürünler için karekod etiketi yazdırır">🏷 Karekod Etiketi Yazdır</button>
         <a class="btn" id="p-export" href="#">⬇ Excel'e Aktar</a>
         <label class="btn">⬆ Excel'den Yükle<input type="file" id="p-import" accept=".csv,text/csv" hidden></label>
       </div>
@@ -548,6 +554,26 @@
         <tbody>${groups[cat].sort(byName).map((p) => `<tr><td>${esc(p.code)}</td><td>${esc(p.name)}</td><td>${esc(p.unit)}</td><td class="r">${fmt.format(p.price)}</td></tr>`).join('')}</tbody></table>`).join('');
       printHtml(`<div class="doc">${shopHeaderHtml('Tarih: ' + new Date().toLocaleDateString('tr-TR'))}
         <div class="doc-title">FİYAT LİSTESİ</div>${body}</div>`);
+    });
+
+    // Ürün karekod etiketi: müşteri telefonunun kendi kamerasıyla okutunca ürünün fiyatı açılır.
+    function productLink(p) {
+      const base = (settings.publicUrl || location.origin + '/').replace(/[?#].*$/, '');
+      return base + (p.barcode ? '?b=' + encodeURIComponent(p.barcode) : '?u=' + p.id);
+    }
+
+    $('p-labels').addEventListener('click', () => {
+      const q = norm($('p-search').value.trim());
+      const cat = $('p-category').value;
+      const list = products
+        .filter((p) => p.active && (!cat || p.category === cat) && (!q || norm(p.name + ' ' + p.code + ' ' + p.barcode).includes(q)))
+        .sort(byName);
+      if (!list.length) { toast('Etiket basılacak ürün yok'); return; }
+      if (list.length > 60 && !confirm(`${list.length} ürün için etiket basılacak. Devam edilsin mi?\n(Sadece bazı ürünler için arama veya kategori seçebilirsiniz.)`)) return;
+      if (!settings.publicUrl) toast('Uyarı: QR Kod sekmesinde adres sabitlenmemiş');
+      printHtml(`<div class="labels">${list.map((p) => `<div class="label">
+        <div class="l-name">${esc(p.name)}</div>${makeQrSvg(productLink(p), 4)}
+        <div class="l-shop">Fiyat için okutun · ${esc(settings.shopName)}</div></div>`).join('')}</div>`);
     });
 
     // ================= Kategoriler =================
