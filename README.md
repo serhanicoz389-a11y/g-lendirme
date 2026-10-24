@@ -22,10 +22,10 @@ değiştirirsiniz; değişiklik müşterinin ekranına anında yansır.
 
 ## Kurulum (Windows)
 
-1. [nodejs.org](https://nodejs.org) adresinden **LTS** sürümünü indirip kurun (tek seferlik).
-2. Bu klasörü bilgisayara kopyalayın.
-3. `baslat.bat` dosyasına çift tıklayın. Yönetim paneli tarayıcıda açılır.
-4. Varsayılan şifre: **dilek123** (aşağıdan değiştirin).
+1. ZIP'i bir klasöre çıkartın (ZIP'in içinden doğrudan çalıştırmayın).
+2. `baslat.bat` dosyasına çift tıklayın. Yönetim paneli tarayıcıda açılır.
+   - Bilgisayarda Node.js yoksa ilk açılışta otomatik olarak bu klasöre indirilir (~35 MB, kurulum gerekmez).
+3. Varsayılan şifre: **dilek123** (aşağıdan değiştirin).
 
 Siyah pencere açık kaldığı sürece sistem çalışır. Kapatırsanız müşteriler sayfayı açamaz.
 
