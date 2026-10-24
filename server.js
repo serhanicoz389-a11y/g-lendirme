@@ -24,6 +24,12 @@ const DEFAULT_SETTINGS = {
   address: '',
   publicUrl: '',
   orderNo: 1,
+  // İnternette yayınlama (GitHub + Cloudflare Pages)
+  githubRepo: 'serhanicoz389-a11y/g-lendirme',
+  githubBranch: 'site',
+  githubToken: '',
+  siteUrl: '',
+  autoPublish: true,
 };
 
 // ---------- Veri dosyaları ----------
@@ -44,7 +50,7 @@ function writeJson(file, data) {
 }
 
 const loadProducts = () => readJson(PRODUCTS_FILE, []);
-const saveProducts = (list) => writeJson(PRODUCTS_FILE, list);
+const saveProducts = (list) => { writeJson(PRODUCTS_FILE, list); schedulePublish(); };
 const loadSettings = () => ({ ...DEFAULT_SETTINGS, ...readJson(SETTINGS_FILE, {}) });
 const saveSettings = (s) => writeJson(SETTINGS_FILE, s);
 
@@ -158,6 +164,140 @@ function importCsv(text) {
   return { added, updated };
 }
 
+// ---------- İnternette yayınlama ----------
+// Müşteri sayfası ve güncel katalog GitHub'daki "site" dalına gönderilir;
+// Cloudflare Pages bu dalı izleyip https://<ad>.pages.dev adresinde yayınlar.
+
+const PUBLISH_FILES = ['index.html', 'style.css', 'vendor/html5-qrcode.min.js', 'vendor/html5-qrcode.LICENSE'];
+const AUTO_PUBLISH_DELAY = 15000;
+let publishTimer = null;
+let publishing = null;
+
+function catalogData(all = loadProducts(), settings = loadSettings()) {
+  const { shopName, slogan, phone, address } = settings;
+  const products = all
+    .filter((p) => p.active)
+    .map(({ id, name, barcode, category, unit, price, updatedAt }) => ({ id, name, barcode, category, unit, price, updatedAt }));
+  return { settings: { shopName, slogan, phone, address }, categories: categoryList(all, settings), products };
+}
+
+function siteFiles() {
+  const files = PUBLISH_FILES.map((f) => ({ path: f, content: fs.readFileSync(path.join(PUBLIC_DIR, f), 'utf8') }));
+  files.push({ path: 'catalog.json', content: JSON.stringify(catalogData()) });
+  files.push({ path: '_headers', content: '/catalog.json\n  Cache-Control: no-cache\n' });
+  return files;
+}
+
+const hashFiles = (files) => crypto.createHash('sha256').update(JSON.stringify(files)).digest('hex');
+
+function publishConfigured(s = loadSettings()) {
+  return Boolean(s.githubRepo && s.githubToken);
+}
+
+function publishStatus() {
+  const s = loadSettings();
+  const configured = publishConfigured(s);
+  return {
+    configured,
+    autoPublish: s.autoPublish,
+    siteUrl: s.siteUrl,
+    dirty: configured && hashFiles(siteFiles()) !== s.publishedHash,
+    publishing: Boolean(publishing),
+    lastPublishedAt: s.lastPublishedAt || null,
+    lastPublishError: s.lastPublishError || null,
+  };
+}
+
+async function github(method, apiPath, token, body) {
+  const res = await fetch((process.env.GITHUB_API_URL || 'https://api.github.com') + apiPath, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'dilek-ofis-katalog',
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return { status: res.status, data: await res.json().catch(() => ({})) };
+}
+
+async function doPublish() {
+  const s = loadSettings();
+  if (!publishConfigured(s)) throw new Error('Önce Ayarlar > İnternette Yayınlama bölümünü doldurun.');
+  const repo = s.githubRepo.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/+$/, '');
+  const branch = (s.githubBranch || 'site').trim();
+  const token = s.githubToken;
+
+  const repoInfo = await github('GET', `/repos/${repo}`, token);
+  if (repoInfo.status === 401) throw new Error('GitHub anahtarı geçersiz veya süresi dolmuş. Yeni anahtar oluşturup Ayarlar\'a yapıştırın.');
+  if (repoInfo.status === 404) throw new Error(`"${repo}" deposu bulunamadı ya da anahtarın bu depoya erişimi yok.`);
+  if (repoInfo.status >= 400) throw new Error(`GitHub hatası (${repoInfo.status}): ${repoInfo.data.message || ''}`);
+
+  const files = siteFiles();
+  const ref = await github('GET', `/repos/${repo}/git/ref/heads/${encodeURIComponent(branch)}`, token);
+  const parent = ref.status === 200 ? ref.data.object.sha : null;
+
+  const tree = await github('POST', `/repos/${repo}/git/trees`, token, {
+    tree: files.map((f) => ({ path: f.path, mode: '100644', type: 'blob', content: f.content })),
+  });
+  if (tree.status === 403 || tree.status === 404) throw new Error('GitHub anahtarının "Contents: Read and write" izni yok.');
+  if (tree.status >= 400) throw new Error(`GitHub hatası (${tree.status}): ${tree.data.message || ''}`);
+
+  const stamp = new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
+  const commit = await github('POST', `/repos/${repo}/git/commits`, token, {
+    message: `Fiyat listesi güncellendi (${stamp})`,
+    tree: tree.data.sha,
+    parents: parent ? [parent] : [],
+  });
+  if (commit.status >= 400) throw new Error(`GitHub hatası (${commit.status}): ${commit.data.message || ''}`);
+
+  const update = parent
+    ? await github('PATCH', `/repos/${repo}/git/refs/heads/${encodeURIComponent(branch)}`, token, { sha: commit.data.sha, force: true })
+    : await github('POST', `/repos/${repo}/git/refs`, token, { ref: `refs/heads/${branch}`, sha: commit.data.sha });
+  if (update.status >= 400) throw new Error(`GitHub hatası (${update.status}): ${update.data.message || ''}`);
+
+  return hashFiles(files);
+}
+
+// Aynı anda tek yayın; hatayı ayarlara yazar ki panel gösterebilsin.
+function publishSite() {
+  clearTimeout(publishTimer);
+  publishing ||= doPublish()
+    .then((hash) => {
+      const s = loadSettings();
+      Object.assign(s, { publishedHash: hash, lastPublishedAt: new Date().toISOString(), lastPublishError: null });
+      saveSettings(s);
+      console.log('  İnternete yayınlandı: ' + new Date().toLocaleTimeString('tr-TR'));
+    })
+    .catch((e) => {
+      const s = loadSettings();
+      s.lastPublishError = e.message;
+      saveSettings(s);
+      console.log('  Yayınlama hatası: ' + e.message);
+      throw e;
+    })
+    .finally(() => { publishing = null; });
+  return publishing;
+}
+
+// Değişiklikten 15 sn sonra otomatik yayınla (art arda düzenlemeler tek seferde gider).
+function schedulePublish() {
+  const s = loadSettings();
+  if (!s.autoPublish || !publishConfigured(s)) return;
+  clearTimeout(publishTimer);
+  publishTimer = setTimeout(() => {
+    if (publishStatus().dirty) publishSite().catch(() => {});
+  }, AUTO_PUBLISH_DELAY);
+}
+
+// Tarayıcıya giden ayarlarda GitHub anahtarı yer almaz.
+function publicSettings(s = loadSettings()) {
+  const { githubToken, publishedHash, ...rest } = s;
+  return { ...rest, githubTokenSet: Boolean(githubToken) };
+}
+
 // ---------- Yardımcılar ----------
 
 // Telefonların ulaşabileceği yerel adresler; en olası olan (Wi-Fi/Ethernet, 192.168.x) başta.
@@ -237,14 +377,7 @@ async function handleApi(req, res, url) {
 
   // Müşterinin gördüğü katalog (sadece aktif ürünler)
   if (pathname === '/api/catalog' && method === 'GET') {
-    const settings = loadSettings();
-    const { shopName, slogan, phone, address } = settings;
-    const all = loadProducts();
-    const products = all
-      .filter((p) => p.active)
-      .map(({ id, name, barcode, category, unit, price, updatedAt }) => ({ id, name, barcode, category, unit, price, updatedAt }));
-    const categories = categoryList(all, settings);
-    return send(res, 200, { settings: { shopName, slogan, phone, address }, categories, products });
+    return send(res, 200, catalogData());
   }
 
   if (pathname === '/api/login' && method === 'POST') {
@@ -350,19 +483,34 @@ async function handleApi(req, res, url) {
 
     s.categories = cats;
     saveSettings(s);
+    schedulePublish();
     return send(res, 200, categoryList(loadProducts(), s));
   }
 
-  if (route === 'settings' && method === 'GET') return send(res, 200, loadSettings());
+  if (route === 'settings' && method === 'GET') return send(res, 200, publicSettings());
 
   if (route === 'settings' && method === 'PUT') {
     const input = await readJsonBody(req);
     const s = loadSettings();
-    for (const k of ['shopName', 'slogan', 'phone', 'address', 'publicUrl']) {
+    for (const k of ['shopName', 'slogan', 'phone', 'address', 'publicUrl', 'githubRepo', 'githubBranch', 'siteUrl']) {
       if (input[k] !== undefined) s[k] = String(input[k]).trim();
     }
+    if (input.githubToken) s.githubToken = String(input.githubToken).trim();
+    if (input.autoPublish !== undefined) s.autoPublish = Boolean(input.autoPublish);
     saveSettings(s);
-    return send(res, 200, s);
+    schedulePublish();
+    return send(res, 200, publicSettings(s));
+  }
+
+  if (route === 'publish' && method === 'GET') return send(res, 200, publishStatus());
+
+  if (route === 'publish' && method === 'POST') {
+    try {
+      await publishSite();
+      return send(res, 200, publishStatus());
+    } catch (e) {
+      return send(res, 502, { error: e.message, ...publishStatus() });
+    }
   }
 
   // Sipariş formu numarası: her yazdırmada bir artar
@@ -419,6 +567,11 @@ server.listen(PORT, () => {
   for (const u of others) console.log(`  Diğer adres    : ${u}`);
   if (!best) console.log('  Uyarı: Bilgisayar bir ağa (Wi-Fi/kablo) bağlı görünmüyor.');
   const { publicUrl } = loadSettings();
+  const pub = publishStatus();
+  if (pub.configured) {
+    console.log(`\n  İnternet adresi: ${pub.siteUrl || '(Ayarlar\'da site adresi girilmemiş)'}`);
+    if (pub.dirty && pub.autoPublish) schedulePublish();
+  }
   if (publicUrl && /^http:\/\/(\d+\.){3}\d+/.test(publicUrl) && !lanAddresses().includes(publicUrl)) {
     console.log(`\n  !!! DİKKAT: Basılı QR kod ${publicUrl} adresine yönleniyor,`);
     console.log('  !!! ama bu bilgisayarın adresi değişmiş. Müşteriler sayfayı açamaz.');

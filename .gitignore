@@ -2,3 +2,4 @@ node_modules/
 *.tmp
 node/
 node-v*/
+data/settings.json

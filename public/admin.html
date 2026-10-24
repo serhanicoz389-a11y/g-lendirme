@@ -59,6 +59,13 @@
     .qr-preview svg { width: 100%; max-width: 300px; height: auto; }
     .url-list button { display: block; margin: 4px 0; }
 
+    #pub-badge.dirty { background: #fef3c7; border-color: #f59e0b; }
+    #pub-badge.ok { background: #ecfdf5; border-color: #10b981; }
+    #pub-badge.err { background: #fef2f2; border-color: var(--danger); color: var(--danger); }
+    .steps { padding-left: 20px; margin: 8px 0 0; font-size: 14px; }
+    .steps li { margin-bottom: 10px; }
+    .steps code { background: #f3f4f6; padding: 1px 6px; border-radius: 4px; }
+    .pub-state { font-size: 14px; margin: 0 0 12px; }
     #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 50; }
     #toast.show { opacity: 1; }
 
@@ -123,7 +130,8 @@
         <button class="tab" data-tab="qr">QR Kod</button>
         <button class="tab" data-tab="settings">Ayarlar</button>
       </nav>
-      <a href="/" target="_blank">Müşteri sayfasını aç ↗</a>
+      <button class="btn small" id="pub-badge" title="Müşteri sayfasını internette güncelle">🌐 Yayınla</button>
+      <a href="/" target="_blank" id="customer-link">Müşteri sayfasını aç ↗</a>
       <button class="btn small" id="logout">Çıkış</button>
     </div>
 
@@ -283,6 +291,66 @@
           <label class="field">Adres<textarea id="s-address" rows="2"></textarea></label>
         </div>
         <div class="bar" style="margin:14px 0 0"><button class="btn primary" id="s-save">Kaydet</button></div>
+      </div>
+
+      <div class="panel" style="max-width:640px" id="publish-panel">
+        <h3>🌐 İnternette Yayınlama (ücretsiz)</h3>
+        <p class="muted" style="font-size:14px; margin-top:0">
+          Müşteri sayfası <b>https://…pages.dev</b> adresinde yayınlanır: QR hiç değişmez, müşteri mobil veriyle de açar,
+          barkodlar canlı kamerayla okunur, bu bilgisayar kapalıyken de çalışır.
+        </p>
+        <div class="pub-state" id="pub-state"></div>
+        <div style="display:grid; gap:12px">
+          <label class="field">GitHub deposu (kullanıcı/depo)<input id="g-repo" type="text" placeholder="serhanicoz389-a11y/g-lendirme"></label>
+          <label class="field">GitHub anahtarı (token)
+            <input id="g-token" type="password" placeholder="github_pat_…" autocomplete="off"></label>
+          <label class="field">Yayın dalı (değiştirmeyin)<input id="g-branch" type="text" placeholder="site"></label>
+          <label class="field">İnternet sitesi adresi (Cloudflare'in verdiği)
+            <input id="g-site" type="text" placeholder="https://dilekofis.pages.dev"></label>
+          <label style="display:flex; gap:8px; align-items:center; font-size:14px">
+            <input type="checkbox" id="g-auto"> Değişiklikleri otomatik yayınla (son değişiklikten 15 sn sonra)</label>
+        </div>
+        <div class="bar" style="margin:14px 0 0">
+          <button class="btn" id="g-save">Kaydet</button>
+          <button class="btn primary" id="g-publish">🌐 Şimdi Yayınla</button>
+        </div>
+
+        <details style="margin-top:16px" id="guide">
+          <summary style="cursor:pointer; color:var(--brand); font-weight:600">Kurulum rehberi (bir kereliğine, ~10 dakika)</summary>
+          <h4 style="margin:14px 0 4px">1. GitHub anahtarı oluşturun</h4>
+          <ol class="steps">
+            <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank">github.com/settings/personal-access-tokens/new</a> adresini açın (GitHub hesabınızla giriş yapın).</li>
+            <li><b>Token name:</b> <code>Dilek Ofis yayın</code> yazın. <b>Expiration:</b> en uzun süreyi seçin.</li>
+            <li><b>Repository access:</b> "Only select repositories" → <code>g-lendirme</code> deposunu seçin.</li>
+            <li><b>Permissions → Repository permissions → Contents:</b> "Read and write" seçin.</li>
+            <li>En alttaki <b>Generate token</b> düğmesine basın ve çıkan <code>github_pat_…</code> ile başlayan anahtarı kopyalayın
+              (bir daha gösterilmez).</li>
+            <li>Anahtarı yukarıdaki <b>GitHub anahtarı</b> kutusuna yapıştırıp <b>Kaydet</b>, ardından <b>Şimdi Yayınla</b> deyin.
+              "Yayınlandı" yazısını görmelisiniz. (Bu adım GitHub'da <code>site</code> dalını oluşturur; Cloudflare'den önce yapılmalı.)</li>
+          </ol>
+          <h4 style="margin:14px 0 4px">2. Cloudflare'de siteyi açın</h4>
+          <ol class="steps">
+            <li><a href="https://dash.cloudflare.com/sign-up" target="_blank">dash.cloudflare.com/sign-up</a> adresinden ücretsiz hesap açın (e-posta + şifre).</li>
+            <li>Sol menüden <b>Workers &amp; Pages</b> → <b>Create</b> (Oluştur) → <b>Pages</b> sekmesi →
+              <b>Import an existing Git repository</b> (Git'e bağlan). Ekranda yalnızca "Workers" seçenekleri görünürse
+              sayfadaki "Pages" / "Looking to deploy Pages?" bağlantısını kullanın.</li>
+            <li><b>Connect GitHub</b> deyin, GitHub'da izin isteyen ekranda <code>g-lendirme</code> deposuna izin verin.</li>
+            <li>Listeden <code>g-lendirme</code> deposunu seçip <b>Begin setup</b> deyin.</li>
+            <li><b>Project name:</b> <code>dilekofis</code> (site adresi bu olur: dilekofis.pages.dev; alınmışsa başka bir ad yazın).<br>
+              <b>Production branch:</b> <code>site</code><br>
+              <b>Framework preset:</b> None · <b>Build command:</b> boş bırakın · <b>Build output directory:</b> <code>/</code></li>
+            <li><b>Save and Deploy</b> deyin. 1–2 dakika sonra size <code>https://….pages.dev</code> adresi verilir.</li>
+          </ol>
+          <h4 style="margin:14px 0 4px">3. Adresi kaydedin ve QR'ı basın</h4>
+          <ol class="steps">
+            <li>Cloudflare'in verdiği adresi yukarıdaki <b>İnternet sitesi adresi</b> kutusuna yapıştırıp <b>Kaydet</b> deyin.</li>
+            <li>Adresi telefonda açıp ürünlerin göründüğünü kontrol edin.</li>
+            <li><b>QR Kod</b> sekmesinde (adres önceden sabitlendiyse önce "Adresi değiştir" deyip) "İnternet adresini kullan" düğmesine basın, <b>📌 Bu adresi sabitle</b> deyin ve afişi yazdırın.</li>
+          </ol>
+          <p class="muted" style="font-size:13px">Sonrasında fiyatları bu panelden değiştirmeniz yeterli: "otomatik yayınla" açıksa
+            yaklaşık 1–2 dakika içinde internetteki sayfa da güncellenir. Fiyat değiştirmek için bu bilgisayarda
+            <b>baslat.bat</b> açık olmalı; müşteriler için açık olması gerekmez.</p>
+        </details>
       </div>
     </section>
   </div>
@@ -800,11 +868,13 @@
       if (qrReady) return;
       qrReady = true;
       ({ lanUrls } = await api('/api/admin/info'));
-      $('qr-lan').innerHTML = lanUrls.length
+      $('qr-lan').innerHTML = (settings.siteUrl
+        ? `<button class="btn small primary" data-url="${esc(settings.siteUrl)}">🌐 İnternet adresini kullan (önerilen): ${esc(settings.siteUrl)}</button>`
+        : '') + (lanUrls.length
         ? '<div class="muted" style="font-size:14px">Bu bilgisayarın yerel adresleri:</div>' +
-          lanUrls.map((u, i) => `<button class="btn small" data-url="${esc(u)}">${esc(u)}${i === 0 ? ' — önerilen' : ''}</button>`).join('')
-        : '<div class="muted">Yerel ağ adresi bulunamadı. Bilgisayarın Wi-Fi/ağa bağlı olduğundan emin olun.</div>';
-      $('qr-url').value = settings.publicUrl || lanUrls[0] || location.origin + '/';
+          lanUrls.map((u, i) => `<button class="btn small" data-url="${esc(u)}">${esc(u)}${i === 0 && !settings.siteUrl ? ' — önerilen' : ''}</button>`).join('')
+        : '<div class="muted">Yerel ağ adresi bulunamadı. Bilgisayarın Wi-Fi/ağa bağlı olduğundan emin olun.</div>');
+      $('qr-url').value = settings.publicUrl || settings.siteUrl || lanUrls[0] || location.origin + '/';
       $('qr-url').readOnly = Boolean(settings.publicUrl);
       renderQrLock();
       renderQr();
@@ -845,7 +915,82 @@
     async function loadSettings() {
       settings = await api('/api/admin/settings');
       for (const k of SETTING_FIELDS) $('s-' + k).value = settings[k] || '';
+      fillPublishForm();
+      refreshPublish();
     }
+
+    // ---- İnternette yayınlama ----
+    function fillPublishForm() {
+      $('g-repo').value = settings.githubRepo || '';
+      $('g-branch').value = settings.githubBranch || 'site';
+      $('g-site').value = settings.siteUrl || '';
+      $('g-auto').checked = settings.autoPublish !== false;
+      $('g-token').value = '';
+      $('g-token').placeholder = settings.githubTokenSet ? '•••••••• (kayıtlı — değiştirmek için yenisini yapıştırın)' : 'github_pat_…';
+      $('guide').open = !settings.githubTokenSet || !settings.siteUrl;
+    }
+
+    function renderPublish(st) {
+      const badge = $('pub-badge');
+      badge.className = 'btn small';
+      let text = '🌐 Yayınla', state = '';
+      if (!st.configured) {
+        state = 'Henüz kurulmadı. Aşağıdaki rehberi izleyin.';
+      } else if (st.publishing) {
+        text = '🌐 Yayınlanıyor…'; state = 'Yayınlanıyor…';
+      } else if (st.lastPublishError) {
+        badge.classList.add('err'); text = '⚠ Yayın hatası';
+        state = `<span style="color:var(--danger)">⚠ Son yayın başarısız: ${esc(st.lastPublishError)}</span>`;
+      } else if (st.dirty) {
+        badge.classList.add('dirty'); text = '🌐 Yayınla (değişiklik var)';
+        state = st.autoPublish ? 'Değişiklikler birazdan otomatik yayınlanacak…' : 'Yayınlanmamış değişiklik var.';
+      } else {
+        badge.classList.add('ok'); text = '🌐 İnternette güncel ✔';
+        state = '<span style="color:var(--ok)">✔ İnternetteki sayfa güncel.</span>';
+      }
+      if (st.lastPublishedAt) state += ` <span class="muted">Son yayın: ${new Date(st.lastPublishedAt).toLocaleString('tr-TR')}</span>`;
+      if (st.siteUrl) state += `<br>Site: <a href="${esc(st.siteUrl)}" target="_blank">${esc(st.siteUrl)}</a>`;
+      badge.textContent = text;
+      $('pub-state').innerHTML = state;
+      if (st.siteUrl) $('customer-link').href = st.siteUrl;
+    }
+
+    async function refreshPublish() {
+      if (!password) return;
+      try { renderPublish(await api('/api/admin/publish')); } catch {}
+    }
+    setInterval(refreshPublish, 8000);
+
+    async function publishNow() {
+      if (!settings.githubTokenSet) {
+        document.querySelector('.tab[data-tab=settings]').click();
+        $('publish-panel').scrollIntoView({ behavior: 'smooth' });
+        toast('Önce internette yayınlama ayarlarını yapın');
+        return;
+      }
+      renderPublish({ configured: true, publishing: true });
+      try {
+        renderPublish(await api('/api/admin/publish', { method: 'POST' }));
+        toast('İnternete yayınlandı. Sayfa 1–2 dakika içinde güncellenir.');
+      } catch { refreshPublish(); }
+    }
+
+    $('pub-badge').addEventListener('click', publishNow);
+    $('g-publish').addEventListener('click', async () => { await savePublishSettings(); publishNow(); });
+
+    async function savePublishSettings() {
+      const body = {
+        githubRepo: $('g-repo').value, githubBranch: $('g-branch').value || 'site',
+        siteUrl: $('g-site').value.trim().replace(/\/?$/, $('g-site').value.trim() ? '/' : ''),
+        autoPublish: $('g-auto').checked,
+      };
+      if ($('g-token').value.trim()) body.githubToken = $('g-token').value.trim();
+      settings = await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify(body) });
+      qrReady = false;
+      fillPublishForm();
+      refreshPublish();
+    }
+    $('g-save').onclick = async () => { await savePublishSettings(); toast('Kaydedildi'); };
 
     $('s-save').addEventListener('click', async () => {
       const body = Object.fromEntries(SETTING_FIELDS.map((k) => [k, $('s-' + k).value]));

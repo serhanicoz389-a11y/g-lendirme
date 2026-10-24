@@ -59,9 +59,17 @@ aynı Wi-Fi ağında olmalıdır. QR Kod sekmesi bilgisayarın yerel adresini (�
 yoksa adres değişebilir ve QR'ı yeniden basmanız gerekir. Windows ilk çalıştırmada güvenlik duvarı izni
 sorarsa "İzin ver" deyin.
 
-**Seçenek 2 – İnternette yayınlama:** Müşteri mobil veriyle de açabilsin isterseniz uygulama
-bir sunucuya (Render, Railway, VPS vb.) kurulur ve QR o adrese yönlendirilir. Bir sonraki adımda
-birlikte karar verebiliriz.
+**Seçenek 2 – İnternette yayınlama (ücretsiz, önerilen):** Müşteri sayfası Cloudflare Pages üzerinde
+`https://<ad>.pages.dev` adresinde yayınlanır. QR hiç değişmez, müşteri mobil veriyle de açar, barkodlar
+canlı kamerayla okunur ve dükkân bilgisayarı kapalıyken de çalışır.
+
+- Fiyatlar yine bu bilgisayardaki yönetim panelinden değiştirilir. Panel, değişiklikleri GitHub'daki
+  `site` dalına gönderir; Cloudflare bunu görüp 1–2 dakika içinde siteyi günceller.
+- "Değişiklikleri otomatik yayınla" açıksa son değişiklikten 15 saniye sonra kendiliğinden gönderilir;
+  sağ üstteki **🌐 Yayınla** düğmesi durumu gösterir.
+- Kurulum bir kereliğine ~10 dakikadır: yönetim paneli → **Ayarlar → İnternette Yayınlama → Kurulum rehberi**.
+- İnternete yalnızca müşteri sayfası ve satıştaki ürünlerin listesi gönderilir; yönetim paneli ve şifre gönderilmez.
+  GitHub anahtarı sadece bu bilgisayardaki `data/settings.json` dosyasında saklanır.
 
 ## Dosyalar
 
