@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dilek Ofis - Fiyat Listesi</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    header {
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      color: #fff; padding: 22px 16px 18px; text-align: center;
+    }
+    header h1 { margin: 0; font-size: 28px; letter-spacing: .5px; }
+    header p { margin: 4px 0 0; opacity: .9; }
+    .toolbar {
+      position: sticky; top: 0; z-index: 5; background: var(--bg);
+      padding: 12px 16px 8px; border-bottom: 1px solid var(--line);
+    }
+    .toolbar input { font-size: 16px; padding: 11px 14px; }
+    .chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 4px; scrollbar-width: none; }
+    .chip {
+      border: 1px solid var(--line); background: #fff; border-radius: 999px;
+      padding: 6px 14px; white-space: nowrap; cursor: pointer; font-size: 14px;
+    }
+    .chip.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+    main { max-width: 760px; margin: 0 auto; padding: 8px 16px 40px; }
+    h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .6px; color: var(--brand-dark); margin: 22px 4px 8px; }
+    .list { background: var(--card); border-radius: var(--radius); border: 1px solid var(--line); overflow: hidden; }
+    .item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; }
+    .item + .item { border-top: 1px solid var(--line); }
+    .item .name { font-weight: 500; }
+    .item .unit { font-size: 13px; color: var(--muted); }
+    .item .price { font-weight: 700; font-size: 17px; color: var(--brand-dark); }
+    .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+    footer { text-align: center; color: var(--muted); font-size: 13px; padding: 10px 16px 30px; }
+    footer a { color: var(--brand); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="shop-name">Dilek Ofis</h1>
+    <p id="slogan">Kırtasiye &amp; Ofis Malzemeleri</p>
+  </header>
+
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="Ürün ara… (örn. defter, kalem)" autocomplete="off">
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <main id="catalog"><p class="empty">Yükleniyor…</p></main>
+
+  <footer>
+    <div id="contact"></div>
+    <div id="updated"></div>
+  </footer>
+
+  <script>
+    const fmt = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' });
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const norm = (s) => s.toLocaleLowerCase('tr-TR');
+    let products = [];
+    let activeCategory = '';
+
+    function render() {
+      const q = norm(document.getElementById('search').value.trim());
+      const filtered = products.filter((p) =>
+        (!activeCategory || p.category === activeCategory) &&
+        (!q || norm(p.name).includes(q) || norm(p.category).includes(q)));
+
+      const groups = {};
+      for (const p of filtered) (groups[p.category] ||= []).push(p);
+
+      const el = document.getElementById('catalog');
+      if (!filtered.length) { el.innerHTML = '<p class="empty">Aradığınız ürün bulunamadı.</p>'; return; }
+      el.innerHTML = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'tr')).map((cat) => `
+        <h2>${esc(cat)}</h2>
+        <div class="list">
+          ${groups[cat].sort((a, b) => a.name.localeCompare(b.name, 'tr')).map((p) => `
+            <div class="item">
+              <div><div class="name">${esc(p.name)}</div><div class="unit">${esc(p.unit)}</div></div>
+              <div class="price money">${fmt.format(p.price)}</div>
+            </div>`).join('')}
+        </div>`).join('');
+    }
+
+    function renderChips() {
+      const cats = [...new Set(products.map((p) => p.category))].sort((a, b) => a.localeCompare(b, 'tr'));
+      const chips = document.getElementById('chips');
+      chips.innerHTML = ['', ...cats].map((c) =>
+        `<button class="chip${c === activeCategory ? ' active' : ''}" data-cat="${esc(c)}">${c ? esc(c) : 'Tümü'}</button>`).join('');
+    }
+
+    document.getElementById('chips').addEventListener('click', (e) => {
+      const btn = e.target.closest('.chip');
+      if (!btn) return;
+      activeCategory = btn.dataset.cat;
+      renderChips();
+      render();
+    });
+    document.getElementById('search').addEventListener('input', render);
+
+    fetch('/api/catalog').then((r) => r.json()).then(({ settings, products: list }) => {
+      products = list;
+      document.title = settings.shopName + ' - Fiyat Listesi';
+      document.getElementById('shop-name').textContent = settings.shopName;
+      document.getElementById('slogan').textContent = settings.slogan;
+      const contact = [settings.address, settings.phone && `<a href="tel:${esc(settings.phone)}">${esc(settings.phone)}</a>`]
+        .filter(Boolean).map((x) => x.startsWith('<a') ? x : esc(x)).join(' · ');
+      document.getElementById('contact').innerHTML = contact;
+      const last = list.reduce((m, p) => (p.updatedAt > m ? p.updatedAt : m), '');
+      if (last) document.getElementById('updated').textContent =
+        'Fiyatlar son güncelleme: ' + new Date(last).toLocaleDateString('tr-TR') + ' · Fiyatlara KDV dahildir.';
+      renderChips();
+      render();
+    }).catch(() => {
+      document.getElementById('catalog').innerHTML = '<p class="empty">Fiyat listesi yüklenemedi. Lütfen tekrar deneyin.</p>';
+    });
+  </script>
+</body>
+</html>

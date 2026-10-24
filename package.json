@@ -1,0 +1,14 @@
+{
+  "name": "dilek-ofis-katalog",
+  "version": "0.1.0",
+  "description": "Dilek Ofis kırtasiye QR fiyat kataloğu ve sipariş formu",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
