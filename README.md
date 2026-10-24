@@ -8,16 +8,19 @@ değiştirirsiniz; değişiklik müşterinin ekranına anında yansır.
 
 **Müşteri sayfası** (QR ile açılır, telefona uygun)
 - Kategorilere ayrılmış ürün ve fiyat listesi
-- Ürün arama, kategori filtreleme
+- Ürün arama (ad veya barkod), kategori filtreleme
+- **Barkod okutma:** "Barkod" düğmesine basıp ürünün barkodunu kameraya tutunca ürün ve fiyatı ekrana gelir
 - Satıştan kaldırdığınız ürünler görünmez
 
 **Yönetim paneli** (`/admin`, şifreli)
 - **Ürünler & Fiyatlar:** Tabloda hücreye tıklayıp değiştirin, otomatik kaydedilir. Yeni ürün ekleme, silme, "Satışta" kutusuyla gizleme.
+- **Barkod (isteğe bağlı):** Ürüne barkod yazılabilir veya USB barkod okuyucuyla okutulabilir. Arama kutusunda okutulan barkod kayıtlı değilse yeni ürün olarak eklemeyi önerir. Aynı barkod iki ürüne verilemez.
+- **Kategoriler:** Yeni kategori ekleme, adını düzeltme, sırasını değiştirme, silme (içindeki ürünler başka kategoriye taşınır).
 - **Toplu fiyat değiştirme:** Tüm ürünlere veya bir kategoriye % zam/indirim, istenen yuvarlamayla (50 kuruş, tam lira…).
 - **Excel'e aktar / Excel'den yükle:** Listeyi indirip Excel'de düzenleyip geri yükleyebilirsiniz.
 - **Fiyat listesi yazdır:** Satıştaki tüm ürünlerin A4 fiyat listesi.
 - **Sipariş Formu:** Müşteri adı, ürünler, miktarlar, iskonto → numaralı, imza alanlı A4 sipariş formu çıktısı.
-- **QR Kod:** QR kodu oluşturur, A4 afiş olarak yazdırır veya SVG olarak indirir.
+- **QR Kod:** Adres bir kez "sabitlenir" ve QR bir daha değişmez. Afiş olarak yazdırılır veya SVG indirilir. Bilgisayarın adresi değişirse panel ve siyah pencere uyarı verir.
 - **Ayarlar:** Dükkân adı, telefon, adres (sayfada ve çıktılarda görünür).
 
 ## Kurulum (Windows)
@@ -36,6 +39,13 @@ Siyah pencere açık kaldığı sürece sistem çalışır. Kapatırsanız müş
 ```
 set ADMIN_PASSWORD=yeni-sifreniz
 ```
+
+## Barkodla fiyat görme hakkında
+
+Telefon tarayıcıları canlı kamerayı yalnızca güvenli (https) sitelerde açar. Uygulama dükkân Wi-Fi'ında
+(`http://192.168…`) çalışırken müşteri "Barkod" düğmesine basınca **fotoğraf çekerek okutma** kullanılır:
+telefonun kamerası açılır, barkodun fotoğrafı çekilir ve ürün fiyatıyla gösterilir.
+Uygulama internette (https) yayınlandığında canlı kamera ile anında okutma da çalışır.
 
 ## Müşteriler sayfaya nasıl ulaşır?
 

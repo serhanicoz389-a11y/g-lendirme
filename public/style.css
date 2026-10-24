@@ -44,3 +44,4 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand-soft)
 .money { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .muted { color: var(--muted); }
 .hidden { display: none !important; }
+input[readonly] { background: #f3f4f6; color: var(--muted); }

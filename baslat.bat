@@ -41,6 +41,15 @@ set "NODE_EXE=%~dp0node\node.exe"
 echo  Node.js hazir.
 
 :calistir
+rem Telefonlarin baglanabilmesi icin guvenlik duvari izni (sadece ilk seferde sorar)
+netsh advfirewall firewall show rule name=DilekOfisKatalog >nul 2>nul
+if not errorlevel 1 goto baslat
+echo.
+echo  Telefonlarin fiyat sayfasini acabilmesi icin Windows guvenlik duvari izni gerekiyor.
+echo  Birazdan acilacak pencerede "Evet" deyin.
+echo.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0guvenlik-duvari.ps1"
+:baslat
 start "" /b cmd /c "ping -n 3 127.0.0.1 >nul & start http://localhost:3000/admin"
 "%NODE_EXE%" server.js
 echo.

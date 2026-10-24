@@ -32,6 +32,8 @@
     th { background: #fafafa; font-size: 13px; color: var(--muted); font-weight: 600; position: sticky; top: 0; }
     td input[type=text], td input[type=number] { padding: 5px 8px; border-color: transparent; background: transparent; }
     td input:hover { border-color: var(--line); }
+    td select { padding: 5px 6px; border-color: transparent; background: transparent; }
+    td select:hover { border-color: var(--line); }
     td input:focus { background: #fff; }
     td.price input { text-align: right; font-weight: 600; width: 110px; }
     tr.inactive td { opacity: .5; }
@@ -111,6 +113,7 @@
       <h1>Dilek Ofis · Yönetim</h1>
       <nav class="tabs">
         <button class="tab active" data-tab="products">Ürünler &amp; Fiyatlar</button>
+        <button class="tab" data-tab="categories">Kategoriler</button>
         <button class="tab" data-tab="order">Sipariş Formu</button>
         <button class="tab" data-tab="qr">QR Kod</button>
         <button class="tab" data-tab="settings">Ayarlar</button>
@@ -122,7 +125,7 @@
     <!-- ---------- Ürünler ---------- -->
     <section class="page" id="tab-products">
       <div class="bar">
-        <input class="grow" id="p-search" type="search" placeholder="Ürün ara…">
+        <input class="grow" id="p-search" type="search" placeholder="Ürün adı, kod veya barkod ile ara… (barkod okuyucu da kullanılabilir)">
         <select id="p-category" style="width:auto"><option value="">Tüm kategoriler</option></select>
         <button class="btn primary" id="p-add">+ Yeni Ürün</button>
         <button class="btn" id="p-bulk">% Toplu Fiyat Değiştir</button>
@@ -155,7 +158,7 @@
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th style="width:90px">Kod</th><th>Ürün Adı</th><th style="width:180px">Kategori</th>
+            <th style="width:100px">Kod</th><th style="width:160px">Barkod <span style="font-weight:400">(isteğe bağlı)</span></th><th>Ürün Adı</th><th style="width:170px">Kategori</th>
             <th style="width:100px">Birim</th><th style="width:130px">Fiyat (₺)</th>
             <th style="width:60px" title="Müşteri sayfasında görünsün mü?">Satışta</th><th style="width:50px"></th>
           </tr></thead>
@@ -163,8 +166,26 @@
         </table>
       </div>
       <p class="count" id="p-count"></p>
-      <datalist id="cat-list"></datalist>
       <p class="muted" style="font-size:14px">İpucu: Hücreye tıklayıp değeri değiştirin; kutudan çıkınca otomatik kaydedilir.</p>
+    </section>
+
+    <!-- ---------- Kategoriler ---------- -->
+    <section class="page hidden" id="tab-categories">
+      <div class="panel" style="max-width:720px">
+        <h3>Kategoriler</h3>
+        <p class="muted" style="font-size:14px; margin-top:0">
+          Müşteri sayfasında kategoriler bu sırayla görünür. Okları kullanarak sırayı değiştirebilir,
+          adını düzeltebilir veya yeni kategori ekleyebilirsiniz.
+        </p>
+        <div class="bar">
+          <input class="grow" id="c-new" type="text" placeholder="Yeni kategori adı (örn. Okul Çantası)">
+          <button class="btn primary" id="c-add">+ Kategori Ekle</button>
+        </div>
+        <table>
+          <thead><tr><th style="width:80px">Sıra</th><th>Kategori</th><th style="width:90px">Ürün</th><th style="width:190px"></th></tr></thead>
+          <tbody id="c-body"></tbody>
+        </table>
+      </div>
     </section>
 
     <!-- ---------- Sipariş Formu ---------- -->
@@ -181,7 +202,7 @@
       <div class="panel">
         <h3>Ürünler</h3>
         <div class="picker">
-          <input id="o-search" type="search" placeholder="Eklemek için ürün adı yazın ve Enter'a basın…" autocomplete="off">
+          <input id="o-search" type="search" placeholder="Ürün adı yazın ya da barkodu okutun, Enter'a basın…" autocomplete="off">
           <div class="suggest hidden" id="o-suggest"></div>
         </div>
         <div class="table-wrap" style="margin-top:12px">
@@ -206,6 +227,7 @@
       <div class="qr-layout">
         <div class="panel">
           <h3>Müşterilerin açacağı adres</h3>
+          <div id="qr-status"></div>
           <label class="field">QR kodun yönlendireceği adres
             <input id="qr-url" type="text" placeholder="http://192.168.1.20:3000/"></label>
           <p class="muted" style="font-size:14px">
@@ -213,8 +235,24 @@
             aşağıdaki yerel adreslerden birini seçin. İnternette yayınladıysanız oradaki adresi yazın.
           </p>
           <div class="url-list" id="qr-lan"></div>
+          <p class="muted" style="font-size:13px">
+            <b>QR'ın hiç değişmemesi için:</b> Modeminizin ayarlarından (genelde 192.168.1.1) "DHCP rezervasyonu"
+            ya da "Sabit IP" bölümünde bu bilgisayara seçtiğiniz adresi kalıcı olarak atayın.
+            Böylece bilgisayar her açıldığında aynı adresi alır ve basılı QR hep çalışır.
+          </p>
+          <details style="margin-top:12px; font-size:14px">
+            <summary style="cursor:pointer; color:var(--brand)">Telefonda sayfa açılmıyorsa</summary>
+            <ol class="muted" style="padding-left:18px; margin:8px 0 0">
+              <li>Telefon, bilgisayarla <b>aynı Wi-Fi ağına</b> bağlı olmalı (mobil veri ile açılmaz).</li>
+              <li>Önce adresi telefonun tarayıcısına elle yazıp deneyin. Açılıyorsa sorun QR'dadır: afişi yeniden yazdırın.</li>
+              <li>Açılmıyorsa <b>baslat.bat</b>'ı kapatıp yeniden açın ve güvenlik duvarı sorusuna <b>Evet</b> deyin.</li>
+              <li>Misafir (Guest) Wi-Fi ağları cihazların birbirini görmesini engeller; dükkânın ana ağını kullanın.</li>
+              <li>Birden çok adres varsa diğerini seçip deneyin.</li>
+            </ol>
+          </details>
           <div class="bar" style="margin-top:14px">
-            <button class="btn" id="qr-save">Adresi kaydet</button>
+            <button class="btn" id="qr-save">📌 Bu adresi sabitle</button>
+            <button class="btn hidden" id="qr-edit">Adresi değiştir</button>
             <button class="btn primary" id="qr-print">🖨 QR Afişini Yazdır</button>
             <a class="btn" id="qr-download" download="dilek-ofis-qr.svg">⬇ QR'ı indir (SVG)</a>
           </div>
@@ -324,35 +362,59 @@
     // ================= Ürünler =================
     async function loadProducts() {
       products = await api('/api/admin/products');
+      await loadCategories();
+      renderProducts();
+    }
+
+    let categories = [];
+    const NEW_CATEGORY = '__yeni__';
+
+    function categoryOptions(selected) {
+      return categories.map((c) => `<option${c === selected ? ' selected' : ''}>${esc(c)}</option>`).join('') +
+        `<option value="${NEW_CATEGORY}">+ Yeni kategori…</option>`;
+    }
+
+    async function loadCategories() {
+      categories = await api('/api/admin/categories');
+      refreshCategories();
+    }
+
+    function refreshCategories() {
+      for (const p of products) if (!categories.includes(p.category)) categories.push(p.category);
+      for (const id of ['p-category', 'bulk-category']) {
+        const sel = $(id), cur = sel.value;
+        sel.innerHTML = sel.options[0].outerHTML + categories.map((c) => `<option>${esc(c)}</option>`).join('');
+        sel.value = categories.includes(cur) ? cur : '';
+      }
+      renderCategories();
+    }
+
+    async function categoryAction(body) {
+      categories = await api('/api/admin/categories', { method: 'POST', body: JSON.stringify(body) });
+      products = await api('/api/admin/products');
       refreshCategories();
       renderProducts();
     }
 
-    function categories() {
-      return [...new Set(products.map((p) => p.category))].sort((a, b) => a.localeCompare(b, 'tr'));
-    }
-
-    function refreshCategories() {
-      const cats = categories();
-      for (const id of ['p-category', 'bulk-category']) {
-        const sel = $(id), cur = sel.value;
-        sel.innerHTML = sel.options[0].outerHTML + cats.map((c) => `<option>${esc(c)}</option>`).join('');
-        sel.value = cats.includes(cur) ? cur : '';
-      }
-      $('cat-list').innerHTML = cats.map((c) => `<option value="${esc(c)}">`).join('');
+    async function askNewCategory() {
+      const name = (prompt('Yeni kategorinin adı:') || '').trim();
+      if (!name) return null;
+      if (!categories.includes(name)) await categoryAction({ action: 'add', name });
+      return name;
     }
 
     function renderProducts() {
       const q = norm($('p-search').value.trim());
       const cat = $('p-category').value;
       const list = products
-        .filter((p) => (!cat || p.category === cat) && (!q || norm(p.name + ' ' + p.code).includes(q)))
-        .sort((a, b) => a.category.localeCompare(b.category, 'tr') || byName(a, b));
+        .filter((p) => (!cat || p.category === cat) && (!q || norm(p.name + ' ' + p.code + ' ' + p.barcode).includes(q)))
+        .sort((a, b) => categories.indexOf(a.category) - categories.indexOf(b.category) || byName(a, b));
       $('p-body').innerHTML = list.map((p) => `
         <tr data-id="${p.id}" class="${p.active ? '' : 'inactive'}">
           <td><input type="text" data-f="code" value="${esc(p.code)}"></td>
+          <td><input type="text" data-f="barcode" value="${esc(p.barcode)}" placeholder="—" inputmode="numeric"></td>
           <td><input type="text" data-f="name" value="${esc(p.name)}"></td>
-          <td><input type="text" data-f="category" value="${esc(p.category)}" list="cat-list"></td>
+          <td><select data-f="category">${categoryOptions(p.category)}</select></td>
           <td><input type="text" data-f="unit" value="${esc(p.unit)}"></td>
           <td class="price"><input type="number" step="0.01" min="0" data-f="price" value="${p.price}"></td>
           <td style="text-align:center"><input type="checkbox" data-f="active" ${p.active ? 'checked' : ''}></td>
@@ -369,12 +431,23 @@
       if (!input) return;
       const tr = input.closest('tr');
       const field = input.dataset.f;
-      const value = input.type === 'checkbox' ? input.checked : input.value;
-      if (field === 'name' && !value.trim()) { toast('Ürün adı boş olamaz'); return; }
-      const updated = await api('/api/admin/products/' + tr.dataset.id, { method: 'PUT', body: JSON.stringify({ [field]: value }) });
+      const current = products.find((p) => p.id === tr.dataset.id);
+      let value = input.type === 'checkbox' ? input.checked : input.value;
+      if (field === 'name' && !value.trim()) { toast('Ürün adı boş olamaz'); input.value = current.name; return; }
+      if (field === 'category' && value === NEW_CATEGORY) {
+        value = await askNewCategory();
+        if (!value) { input.value = current.category; return; }
+      }
+      let updated;
+      try {
+        updated = await api('/api/admin/products/' + tr.dataset.id, { method: 'PUT', body: JSON.stringify({ [field]: value }) });
+      } catch {
+        if (input.type === 'checkbox') input.checked = current[field]; else input.value = current[field] ?? '';
+        return;
+      }
       const i = products.findIndex((p) => p.id === updated.id);
       products[i] = updated;
-      if (field === 'category') refreshCategories();
+      if (field === 'category') { refreshCategories(); renderProducts(); }
       if (field === 'price') input.value = updated.price;
       tr.classList.toggle('inactive', !updated.active);
       tr.classList.add('saved');
@@ -394,12 +467,12 @@
       toast('Ürün silindi');
     });
 
-    $('p-add').addEventListener('click', async () => {
-      const name = prompt('Yeni ürünün adı:');
+    async function addProduct(barcode = '') {
+      const name = prompt(barcode ? `"${barcode}" barkodlu yeni ürünün adı:` : 'Yeni ürünün adı:');
       if (!name || !name.trim()) return;
       const product = await api('/api/admin/products', {
         method: 'POST',
-        body: JSON.stringify({ name, category: $('p-category').value || 'Diğer', unit: 'Adet', price: 0 }),
+        body: JSON.stringify({ name, barcode, category: $('p-category').value || categories[0] || 'Diğer', unit: 'Adet', price: 0 }),
       });
       products.push(product);
       $('p-search').value = '';
@@ -409,6 +482,24 @@
       row.scrollIntoView({ block: 'center' });
       row.querySelector('[data-f=price]').focus();
       toast('Ürün eklendi — fiyatını girin');
+    }
+
+    $('p-add').addEventListener('click', () => addProduct());
+
+    // Barkod okuyucu (USB) aramaya yazıp Enter'a basar: ürün yoksa yeni ürün olarak eklemeyi öner.
+    $('p-search').addEventListener('keydown', async (e) => {
+      if (e.key !== 'Enter') return;
+      const code = $('p-search').value.trim();
+      if (!/^\d{6,14}$/.test(code)) return;
+      const hit = products.find((p) => p.barcode === code);
+      if (hit) {
+        $('p-category').value = '';
+        renderProducts();
+        document.querySelector(`tr[data-id="${hit.id}"] [data-f=price]`)?.focus();
+      } else if (confirm(`"${code}" barkodlu ürün bulunamadı. Yeni ürün olarak eklensin mi?`)) {
+        $('p-search').value = '';
+        await addProduct(code);
+      }
     });
 
     $('p-bulk').addEventListener('click', () => $('bulk-panel').classList.toggle('hidden'));
@@ -451,12 +542,64 @@
     $('p-print').addEventListener('click', () => {
       const groups = {};
       for (const p of products.filter((x) => x.active)) (groups[p.category] ||= []).push(p);
-      const body = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'tr')).map((cat) => `
+      const body = categories.filter((c) => groups[c]).map((cat) => `
         <h2>${esc(cat)}</h2>
         <table><thead><tr><th style="width:70px">Kod</th><th>Ürün</th><th style="width:70px">Birim</th><th class="r" style="width:100px">Fiyat</th></tr></thead>
         <tbody>${groups[cat].sort(byName).map((p) => `<tr><td>${esc(p.code)}</td><td>${esc(p.name)}</td><td>${esc(p.unit)}</td><td class="r">${fmt.format(p.price)}</td></tr>`).join('')}</tbody></table>`).join('');
       printHtml(`<div class="doc">${shopHeaderHtml('Tarih: ' + new Date().toLocaleDateString('tr-TR'))}
         <div class="doc-title">FİYAT LİSTESİ</div>${body}</div>`);
+    });
+
+    // ================= Kategoriler =================
+    function renderCategories() {
+      $('c-body').innerHTML = categories.map((c, i) => {
+        const count = products.filter((p) => p.category === c).length;
+        return `<tr data-cat="${esc(c)}">
+          <td><button class="btn small" data-move="-1" ${i === 0 ? 'disabled' : ''} title="Yukarı">▲</button>
+              <button class="btn small" data-move="1" ${i === categories.length - 1 ? 'disabled' : ''} title="Aşağı">▼</button></td>
+          <td><b>${esc(c)}</b></td>
+          <td class="muted">${count} ürün</td>
+          <td style="text-align:right"><button class="btn small" data-rename>Adını değiştir</button>
+              <button class="btn small danger" data-cdel>Sil</button></td></tr>`;
+      }).join('');
+    }
+
+    $('c-add').addEventListener('click', async () => {
+      const name = $('c-new').value.trim();
+      if (!name) { toast('Kategori adı yazın'); return; }
+      await categoryAction({ action: 'add', name });
+      $('c-new').value = '';
+      toast('Kategori eklendi');
+    });
+    $('c-new').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('c-add').click(); });
+
+    $('c-body').addEventListener('click', async (e) => {
+      const tr = e.target.closest('tr[data-cat]');
+      if (!tr) return;
+      const name = tr.dataset.cat;
+      const move = e.target.closest('[data-move]');
+      if (move) {
+        const list = [...categories];
+        const i = list.indexOf(name), j = i + Number(move.dataset.move);
+        [list[i], list[j]] = [list[j], list[i]];
+        await categoryAction({ action: 'order', list });
+      } else if (e.target.closest('[data-rename]')) {
+        const to = (prompt('Kategorinin yeni adı:', name) || '').trim();
+        if (!to || to === name) return;
+        if (categories.includes(to) && !confirm(`"${to}" zaten var. İki kategori birleştirilsin mi?`)) return;
+        await categoryAction({ action: 'rename', name, to });
+        toast('Kategori güncellendi');
+      } else if (e.target.closest('[data-cdel]')) {
+        const count = products.filter((p) => p.category === name).length;
+        let to = '';
+        if (count) {
+          const others = categories.filter((c) => c !== name);
+          to = (prompt(`"${name}" kategorisinde ${count} ürün var. Bu ürünler hangi kategoriye taşınsın?\n\nMevcut: ${others.join(', ')}`, others[0] || 'Diğer') || '').trim();
+          if (!to) return;
+        } else if (!confirm(`"${name}" kategorisi silinsin mi?`)) return;
+        await categoryAction({ action: 'delete', name, to });
+        toast('Kategori silindi');
+      }
     });
 
     // ================= Sipariş formu =================
@@ -466,7 +609,9 @@
     function suggestions() {
       const q = norm($('o-search').value.trim());
       if (!q) return [];
-      return products.filter((p) => p.active && norm(p.name + ' ' + p.code).includes(q)).sort(byName).slice(0, 12);
+      const exact = products.filter((p) => p.active && p.barcode && p.barcode === q);
+      if (exact.length) return exact;
+      return products.filter((p) => p.active && norm(p.name + ' ' + p.code + ' ' + p.barcode).includes(q)).sort(byName).slice(0, 12);
     }
 
     function renderSuggest() {
@@ -602,15 +747,40 @@
       $('qr-download').href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     }
 
+    let lanUrls = [];
+
+    // Adres bir kez sabitlendikten sonra QR kilitlenir; yanlışlıkla değişip basılı afişler bozulmasın.
+    function renderQrLock() {
+      const saved = settings.publicUrl;
+      const locked = Boolean(saved) && $('qr-url').readOnly;
+      $('qr-save').classList.toggle('hidden', locked);
+      $('qr-edit').classList.toggle('hidden', !locked);
+      $('qr-lan').classList.toggle('hidden', locked);
+      const isLocal = /^http:\/\/(\d+\.){3}\d+/.test(saved || '');
+      let html = '';
+      if (locked && isLocal && !lanUrls.includes(saved)) {
+        html = `<div class="panel" style="border-color:var(--danger); background:#fef2f2">
+          <b style="color:var(--danger)">Dikkat: Bilgisayarın ağ adresi değişmiş!</b><br>
+          Basılı QR <b>${esc(saved)}</b> adresine gidiyor ama bilgisayarın şu anki adresi
+          <b>${esc(lanUrls[0] || 'bulunamadı')}</b>. Müşteriler sayfayı açamaz.<br>
+          QR'ı değiştirmeyin; modem ayarlarından bu bilgisayara tekrar <b>${esc(new URL(saved).hostname)}</b> adresini sabitleyin.</div>`;
+      } else if (locked) {
+        html = '<p style="color:var(--ok); font-size:14px; margin-top:0">✔ QR adresi sabitlendi. Bu QR değişmez; afişi bir kez basmanız yeterli.</p>';
+      }
+      $('qr-status').innerHTML = html;
+    }
+
     async function initQr() {
       if (qrReady) return;
       qrReady = true;
-      const { lanUrls } = await api('/api/admin/info');
+      ({ lanUrls } = await api('/api/admin/info'));
       $('qr-lan').innerHTML = lanUrls.length
         ? '<div class="muted" style="font-size:14px">Bu bilgisayarın yerel adresleri:</div>' +
-          lanUrls.map((u) => `<button class="btn small" data-url="${esc(u)}">${esc(u)}</button>`).join('')
+          lanUrls.map((u, i) => `<button class="btn small" data-url="${esc(u)}">${esc(u)}${i === 0 ? ' — önerilen' : ''}</button>`).join('')
         : '<div class="muted">Yerel ağ adresi bulunamadı. Bilgisayarın Wi-Fi/ağa bağlı olduğundan emin olun.</div>';
       $('qr-url').value = settings.publicUrl || lanUrls[0] || location.origin + '/';
+      $('qr-url').readOnly = Boolean(settings.publicUrl);
+      renderQrLock();
       renderQr();
     }
 
@@ -620,8 +790,18 @@
       if (b) { $('qr-url').value = b.dataset.url; renderQr(); }
     });
     $('qr-save').addEventListener('click', async () => {
-      settings = await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify({ publicUrl: $('qr-url').value }) });
-      toast('Adres kaydedildi');
+      const url = $('qr-url').value.trim();
+      if (!/^https?:\/\/\S+$/.test(url)) { toast('Geçerli bir adres girin'); return; }
+      settings = await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify({ publicUrl: url }) });
+      $('qr-url').readOnly = true;
+      renderQrLock();
+      toast('QR adresi sabitlendi');
+    });
+    $('qr-edit').addEventListener('click', () => {
+      if (!confirm('Adresi değiştirirseniz daha önce bastığınız QR afişleri çalışmaz ve yenisini basmanız gerekir. Devam edilsin mi?')) return;
+      $('qr-url').readOnly = false;
+      renderQrLock();
+      $('qr-url').focus();
     });
     $('qr-print').addEventListener('click', () => {
       const url = $('qr-url').value.trim();

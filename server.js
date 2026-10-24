@@ -48,10 +48,22 @@ const saveProducts = (list) => writeJson(PRODUCTS_FILE, list);
 const loadSettings = () => ({ ...DEFAULT_SETTINGS, ...readJson(SETTINGS_FILE, {}) });
 const saveSettings = (s) => writeJson(SETTINGS_FILE, s);
 
+// Kategoriler: ayarlardaki sıralı liste + ürünlerde geçip listede olmayanlar.
+function categoryList(products = loadProducts(), settings = loadSettings()) {
+  const list = [...(settings.categories || [])];
+  for (const p of products) if (!list.includes(p.category)) list.push(p.category);
+  return list;
+}
+
+function barcodeOwner(products, barcode, exceptId) {
+  return barcode ? products.find((p) => p.barcode === barcode && p.id !== exceptId) : undefined;
+}
+
 function cleanProduct(input, existing = {}) {
   const p = { ...existing };
   if (input.name !== undefined) p.name = String(input.name).trim();
   if (input.code !== undefined) p.code = String(input.code).trim();
+  if (input.barcode !== undefined) p.barcode = String(input.barcode).replace(/\s+/g, '');
   if (input.category !== undefined) p.category = String(input.category).trim() || 'Diğer';
   if (input.unit !== undefined) p.unit = String(input.unit).trim() || 'Adet';
   if (input.price !== undefined) {
@@ -62,6 +74,7 @@ function cleanProduct(input, existing = {}) {
   p.category ??= 'Diğer';
   p.unit ??= 'Adet';
   p.code ??= '';
+  p.barcode ??= '';
   p.price ??= 0;
   p.active ??= true;
   p.updatedAt = new Date().toISOString();
@@ -70,7 +83,7 @@ function cleanProduct(input, existing = {}) {
 
 // ---------- CSV (Excel ile uyumlu, noktalı virgül ayraçlı) ----------
 
-const CSV_HEADERS = ['Kod', 'Ürün Adı', 'Kategori', 'Birim', 'Fiyat', 'Aktif'];
+const CSV_HEADERS = ['Kod', 'Barkod', 'Ürün Adı', 'Kategori', 'Birim', 'Fiyat', 'Aktif'];
 
 function toCsv(products) {
   const esc = (v) => {
@@ -78,7 +91,7 @@ function toCsv(products) {
     return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   };
   const rows = products.map((p) =>
-    [p.code, p.name, p.category, p.unit, String(p.price).replace('.', ','), p.active ? 'Evet' : 'Hayır']
+    [p.code, p.barcode, p.name, p.category, p.unit, String(p.price).replace('.', ','), p.active ? 'Evet' : 'Hayır']
       .map(esc)
       .join(';')
   );
@@ -113,7 +126,7 @@ function importCsv(text) {
   if (rows.length < 2) throw new Error('Dosyada ürün satırı bulunamadı.');
   const header = rows[0].map((h) => h.trim().toLowerCase());
   const col = (...names) => header.findIndex((h) => names.some((n) => h.startsWith(n)));
-  const iCode = col('kod'), iName = col('ürün', 'urun', 'ad'), iCat = col('kategori');
+  const iCode = col('kod'), iBarcode = col('barkod'), iName = col('ürün', 'urun', 'ad'), iCat = col('kategori');
   const iUnit = col('birim'), iPrice = col('fiyat'), iActive = col('aktif');
   if (iName < 0 || iPrice < 0) throw new Error('"Ürün Adı" ve "Fiyat" sütunları bulunmalı.');
 
@@ -123,15 +136,21 @@ function importCsv(text) {
     const name = (r[iName] || '').trim();
     if (!name) continue;
     const code = iCode >= 0 ? (r[iCode] || '').trim() : '';
+    const barcode = iBarcode >= 0 ? (r[iBarcode] || '').replace(/\s+/g, '') : '';
     // Fiyat "1.250,50" veya "1250.50" biçiminde olabilir.
     let priceText = (r[iPrice] || '0').replace(/[^\d.,]/g, '');
     if (priceText.includes(',')) priceText = priceText.replace(/\./g, '').replace(',', '.');
     const input = { name, code, price: priceText };
+    if (iBarcode >= 0) input.barcode = barcode;
     if (iCat >= 0) input.category = r[iCat] || '';
     if (iUnit >= 0) input.unit = r[iUnit] || '';
     if (iActive >= 0) input.active = !/^(hayır|hayir|0|false|pasif)$/i.test((r[iActive] || '').trim());
 
-    const match = products.find((p) => (code && p.code === code) || (!code && p.name.toLowerCase() === name.toLowerCase()));
+    // Eşleştirme sırası: barkod, ürün kodu, ürün adı
+    const match =
+      (barcode && products.find((p) => p.barcode === barcode)) ||
+      (code && products.find((p) => p.code === code)) ||
+      (!code && products.find((p) => p.name.toLocaleLowerCase('tr') === name.toLocaleLowerCase('tr')));
     if (match) { Object.assign(match, cleanProduct(input, match)); updated++; }
     else { products.push(cleanProduct(input, { id: crypto.randomUUID() })); added++; }
   }
@@ -141,14 +160,24 @@ function importCsv(text) {
 
 // ---------- Yardımcılar ----------
 
+// Telefonların ulaşabileceği yerel adresler; en olası olan (Wi-Fi/Ethernet, 192.168.x) başta.
+// Sanal ağ kartları (VirtualBox, Hyper-V, VPN…) telefondan erişilemez, sona atılır.
 function lanAddresses() {
+  const virtual = /virtual|vmware|vbox|hyper-v|vethernet|wsl|docker|loopback|bluetooth|tailscale|zerotier|vpn|tap|tun/i;
   const out = [];
-  for (const list of Object.values(os.networkInterfaces())) {
+  for (const [name, list] of Object.entries(os.networkInterfaces())) {
     for (const a of list || []) {
-      if (a.family === 'IPv4' && !a.internal) out.push(`http://${a.address}:${PORT}/`);
+      if (a.family !== 'IPv4' || a.internal || a.address.startsWith('169.254.')) continue;
+      let score = 0;
+      if (virtual.test(name)) score -= 10;
+      if (/wi-?fi|wlan|kablosuz|wireless/i.test(name)) score += 3;
+      if (/ethernet|eth|en\d/i.test(name) && !virtual.test(name)) score += 2;
+      if (a.address.startsWith('192.168.')) score += 2;
+      else if (a.address.startsWith('10.')) score += 1;
+      out.push({ url: `http://${a.address}:${PORT}/`, score });
     }
   }
-  return out;
+  return out.sort((a, b) => b.score - a.score).map((x) => x.url);
 }
 
 function send(res, status, body, type = 'application/json; charset=utf-8', extra = {}) {
@@ -208,11 +237,14 @@ async function handleApi(req, res, url) {
 
   // Müşterinin gördüğü katalog (sadece aktif ürünler)
   if (pathname === '/api/catalog' && method === 'GET') {
-    const { shopName, slogan, phone, address } = loadSettings();
-    const products = loadProducts()
+    const settings = loadSettings();
+    const { shopName, slogan, phone, address } = settings;
+    const all = loadProducts();
+    const products = all
       .filter((p) => p.active)
-      .map(({ id, name, category, unit, price, updatedAt }) => ({ id, name, category, unit, price, updatedAt }));
-    return send(res, 200, { settings: { shopName, slogan, phone, address }, products });
+      .map(({ id, name, barcode, category, unit, price, updatedAt }) => ({ id, name, barcode, category, unit, price, updatedAt }));
+    const categories = categoryList(all, settings);
+    return send(res, 200, { settings: { shopName, slogan, phone, address }, categories, products });
   }
 
   if (pathname === '/api/login' && method === 'POST') {
@@ -234,6 +266,8 @@ async function handleApi(req, res, url) {
     if (!String(input.name || '').trim()) return send(res, 400, { error: 'Ürün adı boş olamaz.' });
     const products = loadProducts();
     const product = cleanProduct(input, { id: crypto.randomUUID() });
+    const owner = barcodeOwner(products, product.barcode);
+    if (owner) return send(res, 409, { error: `Bu barkod zaten "${owner.name}" ürününde kayıtlı.` });
     products.push(product);
     saveProducts(products);
     return send(res, 201, product);
@@ -243,7 +277,10 @@ async function handleApi(req, res, url) {
     const products = loadProducts();
     const i = products.findIndex((p) => p.id === idMatch[1]);
     if (i < 0) return send(res, 404, { error: 'Ürün bulunamadı.' });
-    products[i] = cleanProduct(await readJsonBody(req), products[i]);
+    const updated = cleanProduct(await readJsonBody(req), products[i]);
+    const owner = barcodeOwner(products, updated.barcode, updated.id);
+    if (owner) return send(res, 409, { error: `Bu barkod zaten "${owner.name}" ürününde kayıtlı.` });
+    products[i] = updated;
     saveProducts(products);
     return send(res, 200, products[i]);
   }
@@ -273,6 +310,47 @@ async function handleApi(req, res, url) {
     }
     saveProducts(products);
     return send(res, 200, { count });
+  }
+
+  // ---- Kategoriler ----
+  if (route === 'categories' && method === 'GET') return send(res, 200, categoryList());
+
+  if (route === 'categories' && method === 'POST') {
+    // action: add | rename | delete | order
+    const { action, name, to, list } = await readJsonBody(req);
+    const products = loadProducts();
+    const s = loadSettings();
+    let cats = categoryList(products, s);
+    const clean = (v) => String(v || '').trim();
+
+    if (action === 'add') {
+      const n = clean(name);
+      if (!n) return send(res, 400, { error: 'Kategori adı boş olamaz.' });
+      if (cats.includes(n)) return send(res, 409, { error: 'Bu kategori zaten var.' });
+      cats.push(n);
+    } else if (action === 'rename') {
+      const from = clean(name), n = clean(to);
+      if (!n) return send(res, 400, { error: 'Yeni ad boş olamaz.' });
+      for (const p of products) if (p.category === from) p.category = n;
+      // Aynı ada sahip kategori varsa ikisi birleşir.
+      cats = cats.includes(n) ? cats.filter((c) => c !== from) : cats.map((c) => (c === from ? n : c));
+      saveProducts(products);
+    } else if (action === 'delete') {
+      const n = clean(name), target = clean(to);
+      const used = products.filter((p) => p.category === n);
+      if (used.length && !target) return send(res, 400, { error: 'Bu kategoride ürün var; taşınacak kategoriyi seçin.' });
+      for (const p of used) p.category = target;
+      cats = cats.filter((c) => c !== n);
+      if (target && !cats.includes(target)) cats.push(target);
+      if (used.length) saveProducts(products);
+    } else if (action === 'order') {
+      if (!Array.isArray(list)) return send(res, 400, { error: 'Liste gerekli.' });
+      cats = [...new Set([...list.map(clean).filter((c) => cats.includes(c)), ...cats])];
+    } else return send(res, 400, { error: 'Bilinmeyen işlem.' });
+
+    s.categories = cats;
+    saveSettings(s);
+    return send(res, 200, categoryList(loadProducts(), s));
   }
 
   if (route === 'settings' && method === 'GET') return send(res, 200, loadSettings());
@@ -336,7 +414,16 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log('\n  Dilek Ofis Fiyat Kataloğu çalışıyor\n');
   console.log(`  Yönetim paneli : http://localhost:${PORT}/admin`);
-  for (const u of lanAddresses()) console.log(`  Müşteri sayfası: ${u}`);
+  const [best, ...others] = lanAddresses();
+  if (best) console.log(`  Müşteri sayfası: ${best}   <- QR kod bu adrese yönlenmeli`);
+  for (const u of others) console.log(`  Diğer adres    : ${u}`);
+  if (!best) console.log('  Uyarı: Bilgisayar bir ağa (Wi-Fi/kablo) bağlı görünmüyor.');
+  const { publicUrl } = loadSettings();
+  if (publicUrl && /^http:\/\/(\d+\.){3}\d+/.test(publicUrl) && !lanAddresses().includes(publicUrl)) {
+    console.log(`\n  !!! DİKKAT: Basılı QR kod ${publicUrl} adresine yönleniyor,`);
+    console.log('  !!! ama bu bilgisayarın adresi değişmiş. Müşteriler sayfayı açamaz.');
+    console.log('  !!! Çözüm: Yönetim paneli > QR Kod sekmesindeki talimatlara bakın.');
+  }
   if (ADMIN_PASSWORD === 'dilek123') console.log('\n  Uyarı: Varsayılan şifre (dilek123) kullanılıyor. ADMIN_PASSWORD ile değiştirin.');
   console.log('\n  Kapatmak için bu pencerede Ctrl+C\n');
 });

@@ -32,6 +32,29 @@
     .item .unit { font-size: 13px; color: var(--muted); }
     .item .price { font-weight: 700; font-size: 17px; color: var(--brand-dark); }
     .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+    .search-row { display: flex; gap: 8px; }
+    .scan-btn {
+      flex: none; border: 0; border-radius: 8px; background: var(--brand); color: #fff;
+      padding: 0 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;
+    }
+    .scan-btn svg { width: 22px; height: 22px; }
+    .modal { position: fixed; inset: 0; z-index: 20; background: rgba(15, 17, 23, .75); display: flex; align-items: flex-end; justify-content: center; }
+    .sheet { background: #fff; width: 100%; max-width: 520px; border-radius: 18px 18px 0 0; padding: 18px 16px 24px; max-height: 92vh; overflow-y: auto; }
+    @media (min-width: 560px) { .modal { align-items: center; } .sheet { border-radius: 18px; } }
+    .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .sheet-head h3 { margin: 0; }
+    .close { border: 0; background: var(--bg); width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; }
+    #reader { width: 100%; border-radius: 12px; overflow: hidden; background: #000; min-height: 220px; }
+    #reader video { width: 100% !important; }
+    .scan-hint { text-align: center; color: var(--muted); font-size: 14px; margin: 10px 0; }
+    .photo-btn { display: block; text-align: center; width: 100%; padding: 12px; border: 1px dashed var(--brand); border-radius: 10px; color: var(--brand); font-weight: 600; cursor: pointer; }
+    .result { text-align: center; padding: 10px 0 4px; }
+    .result .r-cat { color: var(--muted); font-size: 14px; }
+    .result .r-name { font-size: 22px; font-weight: 700; margin: 4px 0; }
+    .result .r-price { font-size: 40px; font-weight: 800; color: var(--brand-dark); margin: 6px 0; }
+    .result .r-code { font-size: 13px; color: var(--muted); letter-spacing: 1px; }
+    .result.notfound .r-name { color: var(--danger); font-size: 18px; }
+    .result .again { margin-top: 16px; }
     footer { text-align: center; color: var(--muted); font-size: 13px; padding: 10px 16px 30px; }
     footer a { color: var(--brand); }
   </style>
@@ -43,11 +66,30 @@
   </header>
 
   <div class="toolbar">
-    <input id="search" type="search" placeholder="Ürün ara… (örn. defter, kalem)" autocomplete="off">
+    <div class="search-row">
+      <input id="search" type="search" placeholder="Ürün ara… (örn. defter, kalem)" autocomplete="off">
+      <button class="scan-btn" id="scan-open" aria-label="Barkod okut">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>
+        Barkod
+      </button>
+    </div>
     <div class="chips" id="chips"></div>
   </div>
 
   <main id="catalog"><p class="empty">Yükleniyor…</p></main>
+
+  <div class="modal hidden" id="scan-modal">
+    <div class="sheet">
+      <div class="sheet-head"><h3 id="scan-title">Barkod okut</h3><button class="close" id="scan-close" aria-label="Kapat">✕</button></div>
+      <div id="scan-area">
+        <div id="reader"></div>
+        <p class="scan-hint" id="scan-hint">Kamerayı ürünün barkoduna tutun.</p>
+        <label class="photo-btn">📷 Fotoğraf çekerek okut
+          <input type="file" id="scan-photo" accept="image/*" capture="environment" hidden></label>
+      </div>
+      <div id="scan-result" class="hidden"></div>
+    </div>
+  </div>
 
   <footer>
     <div id="contact"></div>
@@ -59,20 +101,22 @@
     const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const norm = (s) => s.toLocaleLowerCase('tr-TR');
     let products = [];
+    let categories = [];
     let activeCategory = '';
 
     function render() {
       const q = norm(document.getElementById('search').value.trim());
       const filtered = products.filter((p) =>
         (!activeCategory || p.category === activeCategory) &&
-        (!q || norm(p.name).includes(q) || norm(p.category).includes(q)));
+        (!q || norm(p.name).includes(q) || norm(p.category).includes(q) || (p.barcode && p.barcode.includes(q))));
 
       const groups = {};
       for (const p of filtered) (groups[p.category] ||= []).push(p);
+      const order = (c) => (categories.includes(c) ? categories.indexOf(c) : 999);
 
       const el = document.getElementById('catalog');
       if (!filtered.length) { el.innerHTML = '<p class="empty">Aradığınız ürün bulunamadı.</p>'; return; }
-      el.innerHTML = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'tr')).map((cat) => `
+      el.innerHTML = Object.keys(groups).sort((a, b) => order(a) - order(b) || a.localeCompare(b, 'tr')).map((cat) => `
         <h2>${esc(cat)}</h2>
         <div class="list">
           ${groups[cat].sort((a, b) => a.name.localeCompare(b.name, 'tr')).map((p) => `
@@ -84,7 +128,7 @@
     }
 
     function renderChips() {
-      const cats = [...new Set(products.map((p) => p.category))].sort((a, b) => a.localeCompare(b, 'tr'));
+      const cats = categories.filter((c) => products.some((p) => p.category === c));
       const chips = document.getElementById('chips');
       chips.innerHTML = ['', ...cats].map((c) =>
         `<button class="chip${c === activeCategory ? ' active' : ''}" data-cat="${esc(c)}">${c ? esc(c) : 'Tümü'}</button>`).join('');
@@ -99,8 +143,9 @@
     });
     document.getElementById('search').addEventListener('input', render);
 
-    fetch('/api/catalog').then((r) => r.json()).then(({ settings, products: list }) => {
+    fetch('/api/catalog').then((r) => r.json()).then(({ settings, categories: cats, products: list }) => {
       products = list;
+      categories = cats || [];
       document.title = settings.shopName + ' - Fiyat Listesi';
       document.getElementById('shop-name').textContent = settings.shopName;
       document.getElementById('slogan').textContent = settings.slogan;
@@ -114,6 +159,123 @@
       render();
     }).catch(() => {
       document.getElementById('catalog').innerHTML = '<p class="empty">Fiyat listesi yüklenemedi. Lütfen tekrar deneyin.</p>';
+    });
+
+    // ---------- Kamerayla barkod okutma ----------
+    // Canlı kamera yalnızca HTTPS (veya localhost) üzerinde açılabilir; yerel ağda (http://192.168…)
+    // tarayıcılar kamerayı engeller. O durumda "fotoğraf çekerek okut" yöntemi kullanılır.
+    let scanner = null;
+    let libLoading = null;
+
+    function loadScannerLib() {
+      libLoading ||= new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = '/vendor/html5-qrcode.min.js';
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('Okuyucu yüklenemedi'));
+        document.head.appendChild(s);
+      });
+      return libLoading;
+    }
+
+    function createScanner() {
+      const F = Html5QrcodeSupportedFormats;
+      return new Html5Qrcode('reader', {
+        verbose: false,
+        formatsToSupport: [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.CODE_128, F.CODE_39, F.ITF, F.QR_CODE],
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      });
+    }
+
+    const canLiveScan = () => window.isSecureContext && navigator.mediaDevices?.getUserMedia;
+
+    async function stopScanner() {
+      if (scanner?.isScanning) { try { await scanner.stop(); } catch {} }
+    }
+
+    async function startLive() {
+      $s('reader').classList.toggle('hidden', !canLiveScan());
+      if (!canLiveScan()) {
+        $s('scan-hint').textContent = 'Aşağıdaki düğmeye basıp ürünün barkodunun fotoğrafını çekin.';
+        return;
+      }
+      $s('scan-hint').textContent = 'Kamerayı ürünün barkoduna tutun.';
+      try {
+        await scanner.start({ facingMode: 'environment' },
+          { fps: 10, qrbox: (w, h) => ({ width: Math.min(w * 0.85, 320), height: Math.min(h * 0.5, 160) }) },
+          (text) => onScanned(text), () => {});
+      } catch {
+        $s('reader').classList.add('hidden');
+        $s('scan-hint').textContent = 'Kamera açılamadı. Fotoğraf çekerek okutabilirsiniz.';
+      }
+    }
+
+    const $s = (id) => document.getElementById(id);
+
+    async function openScanner() {
+      $s('scan-modal').classList.remove('hidden');
+      $s('scan-area').classList.remove('hidden');
+      $s('scan-result').classList.add('hidden');
+      $s('scan-title').textContent = 'Barkod okut';
+      try {
+        await loadScannerLib();
+        scanner ||= createScanner();
+        await startLive();
+      } catch {
+        $s('scan-hint').textContent = 'Barkod okuyucu yüklenemedi. Sayfayı yenileyip tekrar deneyin.';
+      }
+    }
+
+    async function closeScanner() {
+      await stopScanner();
+      $s('scan-modal').classList.add('hidden');
+    }
+
+    async function onScanned(text) {
+      await stopScanner();
+      const code = text.trim();
+      const p = products.find((x) => x.barcode && x.barcode === code);
+      $s('scan-area').classList.add('hidden');
+      const box = $s('scan-result');
+      box.classList.remove('hidden');
+      if (navigator.vibrate) navigator.vibrate(80);
+      if (p) {
+        $s('scan-title').textContent = 'Ürün bulundu';
+        box.innerHTML = `<div class="result">
+          <div class="r-cat">${esc(p.category)}</div>
+          <div class="r-name">${esc(p.name)}</div>
+          <div class="r-price money">${fmt.format(p.price)}</div>
+          <div class="muted">${esc(p.unit)} fiyatı</div>
+          <div class="r-code">${esc(code)}</div>
+          <button class="btn primary again" data-again>Başka ürün okut</button></div>`;
+      } else {
+        $s('scan-title').textContent = 'Ürün bulunamadı';
+        box.innerHTML = `<div class="result notfound">
+          <div class="r-name">Bu barkod listemizde kayıtlı değil.</div>
+          <p class="muted">Fiyat bilgisi için lütfen kasaya sorun.</p>
+          <div class="r-code">${esc(code)}</div>
+          <button class="btn primary again" data-again>Tekrar dene</button></div>`;
+      }
+    }
+
+    $s('scan-open').addEventListener('click', openScanner);
+    $s('scan-close').addEventListener('click', closeScanner);
+    $s('scan-modal').addEventListener('click', (e) => { if (e.target.id === 'scan-modal') closeScanner(); });
+    $s('scan-result').addEventListener('click', (e) => { if (e.target.closest('[data-again]')) openScanner(); });
+
+    $s('scan-photo').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      await stopScanner();
+      $s('scan-hint').textContent = 'Okunuyor…';
+      try {
+        await loadScannerLib();
+        scanner ||= createScanner();
+        onScanned(await scanner.scanFile(file, false));
+      } catch {
+        $s('scan-hint').textContent = 'Barkod okunamadı. Barkoda daha yakından, net ve ışıklı bir fotoğraf çekin.';
+      }
     });
   </script>
 </body>
