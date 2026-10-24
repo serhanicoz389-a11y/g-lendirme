@@ -31,7 +31,7 @@ Siyah pencere açık kaldığı sürece sistem çalışır. Kapatırsanız müş
 
 ### Şifreyi değiştirmek
 
-`baslat.bat` dosyasını Not Defteri ile açıp `node server.js` satırının üstüne ekleyin:
+`baslat.bat` dosyasını Not Defteri ile açıp `:calistir` satırının hemen altına ekleyin:
 
 ```
 set ADMIN_PASSWORD=yeni-sifreniz
