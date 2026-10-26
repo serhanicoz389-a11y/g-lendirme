@@ -1,0 +1,20 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Tani</title></head>
+<body style="font-family:sans-serif;padding:16px;font-size:18px">
+<h2>iPhone testi</h2><div id="d"></div>
+<iframe id="f" style="width:100%;height:300px;border:1px solid #ccc"></iframe>
+<script>
+var V=["a-statik", "b-buyukharf-yok", "c-sticky-yok", "d-svg-yok", "e-modal-yok", "f-css-yok", "g-emoji-yok", "h-tam-sayfa", "i-api-istegi-yok", "j-para-bicimi-yok", "k-siralama-yok", "l-kucukharf-yok", "m-tarih-yok"];
+var st={};try{st=JSON.parse(localStorage.getItem("tani")||"{}")}catch(e){}
+function save(){try{localStorage.setItem("tani",JSON.stringify(st))}catch(e){}}
+for(var i=0;i<V.length;i++){if(st[V[i]]==="run")st[V[i]]="COKTU";}
+save();
+var next=null;for(var i=0;i<V.length;i++){if(!st[V[i]]){next=V[i];break;}}
+var d=document.getElementById("d");
+function table(){var h="<p><b>Sonuclar</b> (bu ekranin fotografini gonderin):</p><table>";for(var i=0;i<V.length;i++){var s=st[V[i]]||"-";h+="<tr><td>"+V[i]+"</td><td><b style='color:"+(s==="OK"?"green":"red")+"'>"+s+"</b></td></tr>"}return h+"</table><p><button onclick='localStorage.removeItem(\"tani\");location.reload()'>Bastan basla</button></p>";}
+if(next){st[next]="run";save();d.innerHTML="<p>Deneniyor: <b>"+next+"</b> ("+(V.indexOf(next)+1)+"/"+V.length+")</p><p>Sayfa kapanir ya da hata verirse sayfayi yenileyin; test kaldigi yerden devam eder.</p>";
+ var done=false;function fin(r){if(done)return;done=true;st[next]=r;save();setTimeout(function(){location.reload()},300);}
+ window.addEventListener("message",function(e){if(e.data==="ok")fin("OK");});
+ setTimeout(function(){fin("YANIT-YOK")},12000);
+ document.getElementById("f").src="tani/"+next+".html?t="+Date.now();
+}else{document.getElementById("f").style.display="none";d.innerHTML=table();}
+</script></body></html>

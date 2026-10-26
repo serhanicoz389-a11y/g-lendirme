@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="tr"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dilek Ofis - Fiyat Listesi</title>
+  <link rel="stylesheet" href="../style.css">
+  <style>
+    header {
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      color: #fff; padding: 22px 16px 18px; text-align: center;
+    }
+    header h1 { margin: 0; font-size: 28px; letter-spacing: .5px; }
+    header p { margin: 4px 0 0; opacity: .9; }
+    .toolbar {
+      position: sticky; top: 0; z-index: 5; background: var(--bg);
+      padding: 12px 16px 8px; border-bottom: 1px solid var(--line);
+    }
+    .toolbar input { font-size: 16px; padding: 11px 14px; }
+    .chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 4px; scrollbar-width: none; }
+    .chip {
+      border: 1px solid var(--line); background: #fff; border-radius: 999px;
+      padding: 6px 14px; white-space: nowrap; cursor: pointer; font-size: 14px;
+    }
+    .chip.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+    main { max-width: 760px; margin: 0 auto; padding: 8px 16px 40px; }
+    h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .6px; color: var(--brand-dark); margin: 22px 4px 8px; }
+    .list { background: var(--card); border-radius: var(--radius); border: 1px solid var(--line); overflow: hidden; }
+    .item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; }
+    .item + .item { border-top: 1px solid var(--line); }
+    .item .name { font-weight: 500; }
+    .item .unit { font-size: 13px; color: var(--muted); }
+    .item .price { font-weight: 700; font-size: 17px; color: var(--brand-dark); }
+    .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+    .search-row { display: flex; gap: 8px; }
+    .scan-btn {
+      flex: none; border: 0; border-radius: 8px; background: var(--brand); color: #fff;
+      padding: 0 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;
+    }
+    .scan-btn svg { width: 22px; height: 22px; }
+    .modal { position: fixed; inset: 0; z-index: 20; background: rgba(15, 17, 23, .75); display: flex; align-items: flex-end; justify-content: center; }
+    .sheet { background: #fff; width: 100%; max-width: 520px; border-radius: 18px 18px 0 0; padding: 18px 16px 24px; max-height: 92vh; overflow-y: auto; }
+    @media (min-width: 560px) { .modal { align-items: center; } .sheet { border-radius: 18px; } }
+    .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .sheet-head h3 { margin: 0; }
+    .close { border: 0; background: var(--bg); width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; }
+    #reader { width: 100%; border-radius: 12px; overflow: hidden; background: #000; min-height: 220px; }
+    #reader video { width: 100% !important; }
+    .scan-hint { text-align: center; color: var(--muted); font-size: 14px; margin: 10px 0; }
+    .photo-btn { display: block; text-align: center; width: 100%; padding: 12px; border: 1px dashed var(--brand); border-radius: 10px; color: var(--brand); font-weight: 600; cursor: pointer; }
+    .result { text-align: center; padding: 10px 0 4px; }
+    .result .r-cat { color: var(--muted); font-size: 14px; }
+    .result .r-name { font-size: 22px; font-weight: 700; margin: 4px 0; }
+    .result .r-price { font-size: 40px; font-weight: 800; color: var(--brand-dark); margin: 6px 0; }
+    .result .r-code { font-size: 13px; color: var(--muted); letter-spacing: 1px; }
+    .result.notfound .r-name { color: var(--danger); font-size: 18px; }
+    .result .again { margin-top: 16px; }
+    footer { text-align: center; color: var(--muted); font-size: 13px; padding: 10px 16px 30px; }
+    footer a { color: var(--brand); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="shop-name">Dilek Ofis</h1>
+    <p id="slogan">Kırtasiye &amp; Ofis Malzemeleri</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="search-row">
+      <input id="search" type="search" placeholder="Ürün ara… (örn. defter, kalem)" autocomplete="off">
+      <button class="scan-btn" id="scan-open" aria-label="Barkod veya karekod okut">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8"></path></svg>
+        Okut
+      </button>
+    </div>
+    <div class="chips" id="chips"><button class="chip active" data-cat="">Tümü</button><button class="chip" data-cat="Defter">Defter</button><button class="chip" data-cat="Kalem">Kalem</button><button class="chip" data-cat="Silgi &amp; Kalemtıraş">Silgi &amp; Kalemtıraş</button><button class="chip" data-cat="Kağıt">Kağıt</button><button class="chip" data-cat="Dosyalama">Dosyalama</button><button class="chip" data-cat="Ofis Malzemeleri">Ofis Malzemeleri</button><button class="chip" data-cat="Hizmetler">Hizmetler</button></div>
+  </div>
+
+  <main id="catalog">
+        <h2>Defter</h2>
+        <div class="list">
+          
+            <div class="item">
+              <div><div class="name">A4 Spiralli Kareli Defter 100 Yp</div><div class="unit">Adet</div></div>
+              <div class="price money">₺100,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">A5 Spiralli Çizgili Defter 80 Yp</div><div class="unit">Adet</div></div>
+              <div class="price money">₺65,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Ajanda 2027 Günlük</div><div class="unit">Adet</div></div>
+              <div class="price money">₺250,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Güzel Yazı Defteri</div><div class="unit">Adet</div></div>
+              <div class="price money">₺35,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Müzik Defteri</div><div class="unit">Adet</div></div>
+              <div class="price money">₺30,00</div>
+            </div>
+        </div>
+        <h2>Kalem</h2>
+        <div class="list">
+          
+            <div class="item">
+              <div><div class="name">Fosforlu Kalem</div><div class="unit">Adet</div></div>
+              <div class="price money">₺30,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Kalem Ucu 0.7 (Tüp)</div><div class="unit">Tüp</div></div>
+              <div class="price money">₺20,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Keçeli Kalem 12 Renk</div><div class="unit">Paket</div></div>
+              <div class="price money">₺85,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Kurşun Kalem HB</div><div class="unit">Adet</div></div>
+              <div class="price money">₺10,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Kuru Boya 12 Renk</div><div class="unit">Kutu</div></div>
+              <div class="price money">₺90,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Pastel Boya 24 Renk</div><div class="unit">Kutu</div></div>
+              <div class="price money">₺120,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Tükenmez Kalem Mavi</div><div class="unit">Adet</div></div>
+              <div class="price money">₺15,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Uçlu Kalem 0.7</div><div class="unit">Adet</div></div>
+              <div class="price money">₺45,00</div>
+            </div>
+        </div>
+        <h2>Silgi &amp; Kalemtıraş</h2>
+        <div class="list">
+          
+            <div class="item">
+              <div><div class="name">Daksil (Şerit Düzeltici)</div><div class="unit">Adet</div></div>
+              <div class="price money">₺45,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Kalemtıraş Hazneli</div><div class="unit">Adet</div></div>
+              <div class="price money">₺25,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Silgi Beyaz</div><div class="unit">Adet</div></div>
+              <div class="price money">₺10,00</div>
+            </div>
+        </div>
+        <h2>Kağıt</h2>
+        <div class="list">
+          
+            <div class="item">
+              <div><div class="name">A4 Fotokopi Kağıdı 500 Yp</div><div class="unit">Top</div></div>
+              <div class="price money">₺230,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Elişi Kağıdı 10 Renk</div><div class="unit">Paket</div></div>
+              <div class="price money">₺25,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Grafik Kağıdı A4</div><div class="unit">Adet</div></div>
+              <div class="price money">₺5,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Renkli Fon Kartonu</div><div class="unit">Adet</div></div>
+              <div class="price money">₺8,00</div>
+            </div>
+        </div>
+        <h2>Dosyalama</h2>
+        <div class="list">
+          
+            <div class="item">
+              <div><div class="name">Klasör Geniş</div><div class="unit">Adet</div></div>
+              <div class="price money">₺75,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Sunum Dosyası 20 Yp</div><div class="unit">Adet</div></div>
+              <div class="price money">₺55,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Şeffaf Poşet Dosya 100'lü</div><div class="unit">Paket</div></div>
+              <div class="price money">₺95,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Telli Dosya</div><div class="unit">Adet</div></div>
+              <div class="price money">₺8,00</div>
+            </div>
+        </div>
+        <h2>Ofis Malzemeleri</h2>
+        <div class="list">
+          
+            <div class="item">
+              <div><div class="name">Ataş 100'lü</div><div class="unit">Kutu</div></div>
+              <div class="price money">₺20,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Bant Şeffaf</div><div class="unit">Adet</div></div>
+              <div class="price money">₺15,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Cetvel 30 cm</div><div class="unit">Adet</div></div>
+              <div class="price money">₺15,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Makas</div><div class="unit">Adet</div></div>
+              <div class="price money">₺40,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Sıvı Yapıştırıcı</div><div class="unit">Adet</div></div>
+              <div class="price money">₺25,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Yapıştırıcı Stick 21 gr</div><div class="unit">Adet</div></div>
+              <div class="price money">₺30,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Zımba Makinesi</div><div class="unit">Adet</div></div>
+              <div class="price money">₺120,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Zımba Teli No:10</div><div class="unit">Kutu</div></div>
+              <div class="price money">₺15,00</div>
+            </div>
+        </div>
+        <h2>Hizmetler</h2>
+        <div class="list">
+          
+            <div class="item">
+              <div><div class="name">Fotokopi A4 Siyah-Beyaz</div><div class="unit">Sayfa</div></div>
+              <div class="price money">₺2,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Laminasyon A4</div><div class="unit">Adet</div></div>
+              <div class="price money">₺25,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Renkli Çıktı A4</div><div class="unit">Sayfa</div></div>
+              <div class="price money">₺10,00</div>
+            </div>
+            <div class="item">
+              <div><div class="name">Spiral Cilt</div><div class="unit">Adet</div></div>
+              <div class="price money">₺40,00</div>
+            </div>
+        </div></main>
+
+  <div class="modal hidden" id="scan-modal">
+    <div class="sheet">
+      <div class="sheet-head"><h3 id="scan-title">Barkod / karekod okut</h3><button class="close" id="scan-close" aria-label="Kapat">X</button></div>
+      <div id="scan-area">
+        <div id="reader"></div>
+        <p class="scan-hint" id="scan-hint">Kamerayı ürünün barkoduna veya karekoduna tutun.</p>
+        <label class="photo-btn"> Fotoğraf çekerek okut
+          <input type="file" id="scan-photo" accept="image/*" capture="environment" hidden=""></label>
+      </div>
+      <div id="scan-result" class="hidden"></div>
+    </div>
+  </div>
+
+  <footer>
+    <div id="contact"></div>
+    <div id="updated">Fiyatlar son güncelleme: 26.10.2026 · Fiyatlara KDV dahildir.</div>
+  </footer>
+
+  
+
+
+<script>setTimeout(function(){parent.postMessage("ok","*")},1500)</script></body></html>
