@@ -146,6 +146,7 @@
     // Dükkân bilgisayarında canlı veri /api/catalog'dan gelir; internetteki sitede (Cloudflare Pages)
     // sunucu olmadığı için yayınlanmış catalog.json dosyası okunur.
     async function loadCatalog() {
+      if (window.__CATALOG__) return window.__CATALOG__; // tek dosyalık sürüm
       try {
         const r = await fetch('/api/catalog');
         if (r.ok && r.headers.get('content-type')?.includes('json')) return await r.json();
@@ -185,6 +186,7 @@
     const $s = (id) => document.getElementById(id);
 
     function loadScannerLib() {
+      if (window.Html5Qrcode) return Promise.resolve();
       libLoading ||= new Promise((resolve, reject) => {
         const s = document.createElement('script');
         s.src = '/vendor/html5-qrcode.min.js';
