@@ -26,7 +26,7 @@ const DEFAULT_SETTINGS = {
   orderNo: 1,
   // İnternette yayınlama (GitHub + Cloudflare Pages)
   githubRepo: 'serhanicoz389-a11y/g-lendirme',
-  githubBranch: 'site',
+  githubBranch: 'main',
   githubToken: '',
   siteUrl: '',
   autoPublish: true,
@@ -165,7 +165,7 @@ function importCsv(text) {
 }
 
 // ---------- İnternette yayınlama ----------
-// Müşteri sayfası ve güncel katalog GitHub'daki "site" dalına gönderilir;
+// Müşteri sayfası ve güncel katalog GitHub'daki "main" dalına gönderilir;
 // Cloudflare Pages bu dalı izleyip https://<ad>.pages.dev adresinde yayınlar.
 
 const PUBLISH_FILES = ['index.html', 'style.css', 'vendor/html5-qrcode.min.js', 'vendor/html5-qrcode.LICENSE'];
@@ -227,7 +227,7 @@ async function doPublish() {
   const s = loadSettings();
   if (!publishConfigured(s)) throw new Error('Önce Ayarlar > İnternette Yayınlama bölümünü doldurun.');
   const repo = s.githubRepo.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/+$/, '');
-  const branch = (s.githubBranch || 'site').trim();
+  const branch = (s.githubBranch || 'main').trim();
   const token = s.githubToken;
 
   const repoInfo = await github('GET', `/repos/${repo}`, token);

@@ -304,7 +304,7 @@
           <label class="field">GitHub deposu (kullanıcı/depo)<input id="g-repo" type="text" placeholder="serhanicoz389-a11y/g-lendirme"></label>
           <label class="field">GitHub anahtarı (token)
             <input id="g-token" type="password" placeholder="github_pat_…" autocomplete="off"></label>
-          <label class="field">Yayın dalı (değiştirmeyin)<input id="g-branch" type="text" placeholder="site"></label>
+          <label class="field">Yayın dalı (değiştirmeyin)<input id="g-branch" type="text" placeholder="main"></label>
           <label class="field">İnternet sitesi adresi (Cloudflare'in verdiği)
             <input id="g-site" type="text" placeholder="https://dilekofis.pages.dev"></label>
           <label style="display:flex; gap:8px; align-items:center; font-size:14px">
@@ -326,7 +326,7 @@
             <li>En alttaki <b>Generate token</b> düğmesine basın ve çıkan <code>github_pat_…</code> ile başlayan anahtarı kopyalayın
               (bir daha gösterilmez).</li>
             <li>Anahtarı yukarıdaki <b>GitHub anahtarı</b> kutusuna yapıştırıp <b>Kaydet</b>, ardından <b>Şimdi Yayınla</b> deyin.
-              "Yayınlandı" yazısını görmelisiniz. (Bu adım GitHub'da <code>site</code> dalını oluşturur; Cloudflare'den önce yapılmalı.)</li>
+              "Yayınlandı" yazısını görmelisiniz.</li>
           </ol>
           <h4 style="margin:14px 0 4px">2. Cloudflare'de siteyi açın</h4>
           <ol class="steps">
@@ -337,7 +337,7 @@
             <li><b>Connect GitHub</b> deyin, GitHub'da izin isteyen ekranda <code>g-lendirme</code> deposuna izin verin.</li>
             <li>Listeden <code>g-lendirme</code> deposunu seçip <b>Begin setup</b> deyin.</li>
             <li><b>Project name:</b> <code>dilekofis</code> (site adresi bu olur: dilekofis.pages.dev; alınmışsa başka bir ad yazın).<br>
-              <b>Production branch:</b> <code>site</code><br>
+              <b>Production branch:</b> <code>main</code><br>
               <b>Framework preset:</b> None · <b>Build command:</b> boş bırakın · <b>Build output directory:</b> <code>/</code></li>
             <li><b>Save and Deploy</b> deyin. 1–2 dakika sonra size <code>https://….pages.dev</code> adresi verilir.</li>
           </ol>
@@ -922,7 +922,7 @@
     // ---- İnternette yayınlama ----
     function fillPublishForm() {
       $('g-repo').value = settings.githubRepo || '';
-      $('g-branch').value = settings.githubBranch || 'site';
+      $('g-branch').value = settings.githubBranch || 'main';
       $('g-site').value = settings.siteUrl || '';
       $('g-auto').checked = settings.autoPublish !== false;
       $('g-token').value = '';
@@ -980,7 +980,7 @@
 
     async function savePublishSettings() {
       const body = {
-        githubRepo: $('g-repo').value, githubBranch: $('g-branch').value || 'site',
+        githubRepo: $('g-repo').value, githubBranch: $('g-branch').value || 'main',
         siteUrl: $('g-site').value.trim().replace(/\/?$/, $('g-site').value.trim() ? '/' : ''),
         autoPublish: $('g-auto').checked,
       };

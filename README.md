@@ -64,7 +64,7 @@ sorarsa "İzin ver" deyin.
 canlı kamerayla okunur ve dükkân bilgisayarı kapalıyken de çalışır.
 
 - Fiyatlar yine bu bilgisayardaki yönetim panelinden değiştirilir. Panel, değişiklikleri GitHub'daki
-  `site` dalına gönderir; Cloudflare bunu görüp 1–2 dakika içinde siteyi günceller.
+  `main` dalına gönderir; Cloudflare bunu görüp 1–2 dakika içinde siteyi günceller.
 - "Değişiklikleri otomatik yayınla" açıksa son değişiklikten 15 saniye sonra kendiliğinden gönderilir;
   sağ üstteki **🌐 Yayınla** düğmesi durumu gösterir.
 - Kurulum bir kereliğine ~10 dakikadır: yönetim paneli → **Ayarlar → İnternette Yayınlama → Kurulum rehberi**.
