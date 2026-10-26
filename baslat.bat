@@ -2,6 +2,17 @@
 title Dilek Ofis Fiyat Katalogu
 cd /d "%~dp0"
 
+rem ZIP'in icinden calistirilirsa server.js bulunamaz
+if exist "%~dp0server.js" goto dosyalar_tamam
+echo.
+echo  HATA: Program dosyalari bulunamadi.
+echo  ZIP dosyasina sag tiklayip "Tumunu ayikla" deyin,
+echo  sonra ayiklanan klasorun icindeki baslat.bat dosyasini calistirin.
+echo.
+pause
+exit /b
+:dosyalar_tamam
+
 set "NODE_VER=22.12.0"
 set "NODE_ARCH=x64"
 if /i "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "NODE_ARCH=arm64"
@@ -50,10 +61,12 @@ echo  Birazdan acilacak pencerede "Evet" deyin.
 echo.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0guvenlik-duvari.ps1"
 :baslat
-start "" /b cmd /c "ping -n 3 127.0.0.1 >nul & start http://localhost:3000/admin"
+echo.
+echo  Program baslatiliyor, yonetim paneli tarayicida kendiliginden acilacak...
 "%NODE_EXE%" server.js
 echo.
-echo  Program kapandi. Yukaridaki mesaji kontrol edin.
+echo  Program kapandi. Yukaridaki mesajin fotografini cekip gonderin.
+echo  (Hata ayrintisi: hata-kaydi.txt dosyasinda)
 pause
 exit /b
 

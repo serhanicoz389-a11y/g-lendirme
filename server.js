@@ -9,8 +9,20 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
+const { exec } = require('child_process');
 
-const PORT = Number(process.env.PORT) || 3000;
+let PORT = Number(process.env.PORT) || 3000;
+const START_PORT = PORT;
+const SITE_URL = 'https://dilekofis.pages.dev/';
+const LOG_FILE = path.join(__dirname, 'hata-kaydi.txt');
+
+// Beklenmeyen hatalar hem ekrana hem hata-kaydi.txt dosyasına yazılır.
+function logError(e) {
+  const line = `[${new Date().toLocaleString('tr-TR')}] ${e && e.stack ? e.stack : e}\n`;
+  console.error('\n  HATA: ' + (e && e.message ? e.message : e));
+  try { fs.appendFileSync(LOG_FILE, line); } catch {}
+}
+process.on('uncaughtException', (e) => { logError(e); process.exitCode = 1; });
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'dilek123';
 const DATA_DIR = path.join(__dirname, 'data');
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -22,13 +34,13 @@ const DEFAULT_SETTINGS = {
   slogan: 'Kırtasiye & Ofis Malzemeleri',
   phone: '',
   address: '',
-  publicUrl: '',
+  publicUrl: SITE_URL,
   orderNo: 1,
   // İnternette yayınlama (GitHub + Cloudflare Pages)
   githubRepo: 'serhanicoz389-a11y/g-lendirme',
   githubBranch: 'main',
   githubToken: '',
-  siteUrl: '',
+  siteUrl: SITE_URL,
   autoPublish: true,
 };
 
@@ -559,14 +571,20 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
+// Tarayıcıyı ancak sunucu gerçekten hazır olunca aç (Windows).
+function openBrowser(url) {
+  if (process.platform !== 'win32' || process.env.NO_BROWSER) return;
+  exec(`start "" "${url}"`, { windowsHide: true });
+}
+
+function onListening() {
   console.log('\n  Dilek Ofis Fiyat Kataloğu çalışıyor\n');
   console.log(`  Yönetim paneli : http://localhost:${PORT}/admin`);
   const [best, ...others] = lanAddresses();
-  if (best) console.log(`  Müşteri sayfası: ${best}   <- QR kod bu adrese yönlenmeli`);
-  for (const u of others) console.log(`  Diğer adres    : ${u}`);
-  if (!best) console.log('  Uyarı: Bilgisayar bir ağa (Wi-Fi/kablo) bağlı görünmüyor.');
   const { publicUrl } = loadSettings();
+  console.log(`  QR kod adresi  : ${publicUrl || '(QR Kod sekmesinde sabitlenmemiş)'}`);
+  if (best) console.log(`  Dükkân Wi-Fi'ı : ${best}`);
+  for (const u of others) console.log(`  Diğer adres    : ${u}`);
   const pub = publishStatus();
   if (pub.configured) {
     console.log(`\n  İnternet adresi: ${pub.siteUrl || '(Ayarlar\'da site adresi girilmemiş)'}`);
@@ -579,4 +597,29 @@ server.listen(PORT, () => {
   }
   if (ADMIN_PASSWORD === 'dilek123') console.log('\n  Uyarı: Varsayılan şifre (dilek123) kullanılıyor. ADMIN_PASSWORD ile değiştirin.');
   console.log('\n  Kapatmak için bu pencerede Ctrl+C\n');
+  openBrowser(`http://localhost:${PORT}/admin`);
+}
+
+// Port doluysa: zaten çalışan bir Dilek Ofis varsa onu aç, yoksa sıradaki boş portu dene.
+server.on('error', async (e) => {
+  if (e.code !== 'EADDRINUSE') { logError(e); process.exit(1); }
+  try {
+    const r = await fetch(`http://localhost:${PORT}/api/catalog`, { signal: AbortSignal.timeout(1500) });
+    if (r.ok && (await r.json()).products) {
+      console.log(`\n  Program zaten açık (http://localhost:${PORT}/admin). Tarayıcıda açılıyor...`);
+      console.log('  Bu pencereyi kapatabilirsiniz.\n');
+      openBrowser(`http://localhost:${PORT}/admin`);
+      return setTimeout(() => process.exit(0), 1500);
+    }
+  } catch {}
+  if (PORT >= START_PORT + 10) {
+    logError(new Error(`${START_PORT}-${PORT} arasındaki portların hepsi başka programlarca kullanılıyor.`));
+    process.exit(1);
+  }
+  console.log(`  ${PORT} numaralı port başka bir program tarafından kullanılıyor, ${PORT + 1} deneniyor...`);
+  PORT += 1;
+  server.listen(PORT);
 });
+
+server.on('listening', onListening);
+server.listen(PORT);
