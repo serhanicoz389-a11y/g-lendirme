@@ -13,7 +13,7 @@ const { exec } = require('child_process');
 
 let PORT = Number(process.env.PORT) || 3000;
 const START_PORT = PORT;
-const SITE_URL = 'https://dilekofis.pages.dev/';
+const SITE_URL = 'https://serhanicoz389-a11y.github.io/g-lendirme/';
 const LOG_FILE = path.join(__dirname, 'hata-kaydi.txt');
 
 // Beklenmeyen hatalar hem ekrana hem hata-kaydi.txt dosyasına yazılır.
@@ -63,7 +63,14 @@ function writeJson(file, data) {
 
 const loadProducts = () => readJson(PRODUCTS_FILE, []);
 const saveProducts = (list) => { writeJson(PRODUCTS_FILE, list); schedulePublish(); };
-const loadSettings = () => ({ ...DEFAULT_SETTINGS, ...readJson(SETTINGS_FILE, {}) });
+// Eski adres (pages.dev) bazı internet şirketlerinde açılmıyor; kayıtlı ayarlarda varsa yenisine çevir.
+const OLD_SITE_URL = /^https?:\/\/dilekofis\.pages\.dev\/?$/;
+function loadSettings() {
+  const s = { ...DEFAULT_SETTINGS, ...readJson(SETTINGS_FILE, {}) };
+  if (OLD_SITE_URL.test(s.siteUrl || '')) s.siteUrl = SITE_URL;
+  if (OLD_SITE_URL.test(s.publicUrl || '')) s.publicUrl = SITE_URL;
+  return s;
+}
 const saveSettings = (s) => writeJson(SETTINGS_FILE, s);
 
 // Kategoriler: ayarlardaki sıralı liste + ürünlerde geçip listede olmayanlar.
@@ -178,7 +185,7 @@ function importCsv(text) {
 
 // ---------- İnternette yayınlama ----------
 // Müşteri sayfası ve güncel katalog GitHub'daki "main" dalına gönderilir;
-// Cloudflare Pages bu dalı izleyip https://<ad>.pages.dev adresinde yayınlar.
+// GitHub Pages bu dalı https://<kullanıcı>.github.io/<depo>/ adresinde yayınlar.
 
 const PUBLISH_FILES = ['index.html', 'style.css', 'vendor/html5-qrcode.min.js', 'vendor/html5-qrcode.LICENSE'];
 const AUTO_PUBLISH_DELAY = 15000;
@@ -196,6 +203,7 @@ function catalogData(all = loadProducts(), settings = loadSettings()) {
 function siteFiles() {
   const files = PUBLISH_FILES.map((f) => ({ path: f, content: fs.readFileSync(path.join(PUBLIC_DIR, f), 'utf8') }));
   files.push({ path: 'catalog.json', content: JSON.stringify(catalogData()) });
+  files.push({ path: '.nojekyll', content: '' });
   files.push({ path: '_headers', content: '/\n  Cache-Control: no-cache\n/index.html\n  Cache-Control: no-cache\n/catalog.json\n  Cache-Control: no-cache\n' });
   return files;
 }
