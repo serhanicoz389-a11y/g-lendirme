@@ -196,7 +196,7 @@ function catalogData(all = loadProducts(), settings = loadSettings()) {
 function siteFiles() {
   const files = PUBLISH_FILES.map((f) => ({ path: f, content: fs.readFileSync(path.join(PUBLIC_DIR, f), 'utf8') }));
   files.push({ path: 'catalog.json', content: JSON.stringify(catalogData()) });
-  files.push({ path: '_headers', content: '/catalog.json\n  Cache-Control: no-cache\n' });
+  files.push({ path: '_headers', content: '/\n  Cache-Control: no-cache\n/index.html\n  Cache-Control: no-cache\n/catalog.json\n  Cache-Control: no-cache\n' });
   return files;
 }
 
