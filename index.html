@@ -178,7 +178,7 @@
         $('catalog').innerHTML = '<p class="empty">Fiyat listesi yüklenemedi. Lütfen sayfayı yenileyin.</p>';
       };
       var fromFile = function () { getJSON('catalog.json?t=' + new Date().getTime(), done, failed); };
-      if (/\.pages\.dev$/.test(location.hostname)) fromFile();
+      if (/\.(pages\.dev|github\.io)$/.test(location.hostname)) fromFile();
       else getJSON('/api/catalog', done, fromFile);
     }
 
@@ -236,7 +236,7 @@
       if (window.Html5Qrcode) return Promise.resolve();
       if (!libLoading) libLoading = new Promise(function (resolve, reject) {
         var s = document.createElement('script');
-        s.src = '/vendor/html5-qrcode.min.js';
+        s.src = 'vendor/html5-qrcode.min.js';
         s.onload = resolve;
         s.onerror = function () { libLoading = null; reject(new Error('Okuyucu yüklenemedi')); };
         document.head.appendChild(s);
