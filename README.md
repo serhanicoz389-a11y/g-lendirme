@@ -11,6 +11,9 @@ değiştirirsiniz; değişiklik müşterinin ekranına anında yansır.
 - Ürün arama (ad veya barkod), kategori filtreleme
 - **Barkod / karekod okutma:** "Okut" düğmesine basınca tam ekran kamera açılır; ürünün kodunu yeşil çerçevenin içine tutmak yeterli. Düz barkodlar (EAN-13, EAN-8, UPC, Code 128, Code 39…) ve kare kodlar (QR, DataMatrix, Aztec, PDF417, GS1) kendiliğinden okunur, ürün fiyatıyla açılır; listede olmayan ürün için "Ürün bulunamadı" yazar. Okuyucu ZXing'dir (`public/vendor/zxing-*`, MIT/Apache); bulanık görüntüde keskinleştirerek tekrar dener
 - Satıştan kaldırdığınız ürünler görünmez
+- **Sepet ve sipariş:** Müşteri ürünleri "Sepete ekle" ile (ya da barkodu okutup) sepete atar, siparişine bir ad verir
+  (örn. "Okul listesi – Elif"), adını ve isteğe bağlı telefonunu yazıp onaylar. **Siparişlerim** bölümünde siparişin
+  durumunu (Alındı, Hazırlanıyor, Hazır, Teslim edildi) görür. Arama bütün kelimelere bakar ve kaç çeşit bulunduğunu yazar.
 
 **Yönetim paneli** (`/admin`, şifreli)
 - **Ürünler & Fiyatlar:** Tabloda hücreye tıklayıp değiştirin, otomatik kaydedilir. Yeni ürün ekleme, silme, "Satışta" kutusuyla gizleme.
@@ -20,6 +23,10 @@ değiştirirsiniz; değişiklik müşterinin ekranına anında yansır.
 - **Excel'e aktar / Excel'den yükle:** Listeyi indirip Excel'de düzenleyip geri yükleyebilirsiniz.
 - **Karekod etiketi yazdır:** Listede görünen ürünler için A4'e etiket basar. Müşteri bu etiketi telefonunun kendi kamerasıyla okuttuğunda ürünün güncel fiyatı açılır (uygulama içinde "Okut" demeye gerek yok). Etikette fiyat yazmaz, böylece fiyat değişince yeniden basmak gerekmez.
 - **Fiyat listesi yazdır:** Satıştaki tüm ürünlerin A4 fiyat listesi.
+- **Siparişler:** Müşterilerin sitede onayladığı siparişler gelir (yeni siparişte ses ve sekmede sayı). Durumu tek
+  tıkla değiştirilir, müşteri sitede görür; sipariş yazdırılır ya da Sipariş Formu'na aktarılır. İnternetteki siteden
+  sipariş almak için bir kerelik kurulum: Ayarlar › İnternetten Sipariş Alma › Kurulum rehberi (gizli `siparisler` deposu
+  ve yalnız Issues izni olan bir anahtar). Siparişler şifreli gider; bilgisayar kapalıyken gelenler depoda bekler.
 - **Sipariş Formu:** Müşteri adı, ürünler, miktarlar, iskonto → numaralı, imza alanlı A4 sipariş formu çıktısı.
 - **QR Kod:** Adres bir kez "sabitlenir" ve QR bir daha değişmez. Afiş olarak yazdırılır veya SVG indirilir. Bilgisayarın adresi değişirse panel ve siyah pencere uyarı verir.
 - **Ayarlar:** Dükkân adı, telefon, adres (sayfada ve çıktılarda görünür).

@@ -29,6 +29,8 @@ const DATA_DIR = path.join(__dirname, 'data');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
+const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
+const ORDER_REPO = 'dilekofis/siparisler';
 
 const DEFAULT_SETTINGS = {
   shopName: 'Dilek Ofis',
@@ -43,6 +45,10 @@ const DEFAULT_SETTINGS = {
   githubToken: '',
   siteUrl: SITE_URL,
   autoPublish: true,
+  // İnternetten sipariş alma: müşteri siparişi bu (gizli) depoya şifreli "issue" olarak bırakır, program alır.
+  orderRepo: ORDER_REPO,
+  orderToken: '',
+  ordersEnabled: true,
 };
 
 // ---------- Veri dosyaları ----------
@@ -199,12 +205,19 @@ const AUTO_PUBLISH_DELAY = 15000;
 let publishTimer = null;
 let publishing = null;
 
-function catalogData(all = loadProducts(), settings = loadSettings()) {
+// mode 'local': dükkân bilgisayarından açılan sayfa (sipariş doğrudan bu programa gelir);
+// mode 'site': internetteki sayfa (sipariş, sipariş deposuna şifreli bırakılır; ayarlı değilse sipariş kapalı).
+function catalogData(all = loadProducts(), settings = loadSettings(), mode = 'local') {
   const { shopName, slogan, phone, address } = settings;
   const products = all
     .filter((p) => p.active)
     .map(({ id, name, barcode, category, unit, price, updatedAt }) => ({ id, name, barcode, category, unit, price, updatedAt }));
-  return { settings: { shopName, slogan, phone, address }, categories: categoryList(all, settings), products };
+  let order = null;
+  if (settings.ordersEnabled !== false) {
+    if (mode === 'local') order = { local: true };
+    else if (ordersConfigured(settings)) order = { repo: cleanRepo(settings.orderRepo), k: hideToken(settings.orderToken), pub: orderKeys().pub };
+  }
+  return { settings: { shopName, slogan, phone, address }, categories: categoryList(all, settings), products, order };
 }
 
 function siteFiles() {
@@ -213,9 +226,10 @@ function siteFiles() {
     const data = fs.readFileSync(path.join(PUBLIC_DIR, f));
     files.push({ path: f, data, sha: gitBlobSha(data) });
   }
-  files.push({ path: 'catalog.json', content: JSON.stringify(catalogData()) });
+  files.push({ path: 'catalog.json', content: JSON.stringify(catalogData(loadProducts(), loadSettings(), 'site')) });
+  files.push({ path: 'siparis-durum.json', content: JSON.stringify(orderStatusMap()) });
   files.push({ path: '.nojekyll', content: '' });
-  files.push({ path: '_headers', content: '/\n  Cache-Control: no-cache\n/index.html\n  Cache-Control: no-cache\n/catalog.json\n  Cache-Control: no-cache\n' });
+  files.push({ path: '_headers', content: '/\n  Cache-Control: no-cache\n/index.html\n  Cache-Control: no-cache\n/catalog.json\n  Cache-Control: no-cache\n/siparis-durum.json\n  Cache-Control: no-cache\n' });
   return files;
 }
 
@@ -257,7 +271,7 @@ async function github(method, apiPath, token, body) {
 async function doPublish() {
   const s = loadSettings();
   if (!publishConfigured(s)) throw new Error('Önce Ayarlar > İnternette Yayınlama bölümünü doldurun.');
-  const repo = s.githubRepo.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/+$/, '');
+  const repo = cleanRepo(s.githubRepo);
   const branch = (s.githubBranch || 'main').trim();
   const token = s.githubToken;
 
@@ -332,10 +346,183 @@ function schedulePublish() {
   }, AUTO_PUBLISH_DELAY);
 }
 
-// Tarayıcıya giden ayarlarda GitHub anahtarı yer almaz.
+// Tarayıcıya giden ayarlarda GitHub anahtarları ve sipariş şifre anahtarı yer almaz.
 function publicSettings(s = loadSettings()) {
-  const { githubToken, publishedHash, ...rest } = s;
-  return { ...rest, githubTokenSet: Boolean(githubToken) };
+  const { githubToken, publishedHash, orderToken, orderKeyPrivate, orderKeyPublic, ...rest } = s;
+  return { ...rest, githubTokenSet: Boolean(githubToken), orderTokenSet: Boolean(orderToken) };
+}
+
+const cleanRepo = (r) => String(r || '').trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/+$/, '');
+
+// ---------- Siparişler ----------
+// Müşteri sepetini onaylayınca sipariş iki yoldan gelir:
+//  • Dükkân Wi-Fi'ından açılan sayfa: doğrudan bu programa (POST /api/orders).
+//  • İnternetteki sayfa: sipariş, dükkânın şifre anahtarıyla (RSA + AES) şifrelenip gizli sipariş deposuna "issue"
+//    olarak bırakılır; bu program 20 saniyede bir depoya bakar, siparişi çözüp kaydeder ve issue'yu kapatır.
+//    Bilgisayar kapalıyken gelen siparişler depoda bekler, kaybolmaz. Sayfadaki anahtar yalnız bu depoya
+//    sipariş bırakabilir; siparişin içeriği şifreli olduğu için başkası okuyamaz.
+// Siparişin durumu (alındı, hazırlanıyor, hazır…) siparis-durum.json ile müşteri sayfasına yayınlanır
+// (yalnız sipariş numarası ve durum; ad, telefon gibi bilgiler yayınlanmaz).
+
+const ORDER_STATUSES = ['yeni', 'hazirlaniyor', 'hazir', 'teslim', 'iptal'];
+const ORDER_MARK = 'DILEKOFIS-SIPARIS v1';
+const ORDER_ID = /^[A-HJ-NP-Z2-9]{8}$/;
+
+const loadOrders = () => readJson(ORDERS_FILE, []);
+const saveOrders = (list) => writeJson(ORDERS_FILE, list);
+
+function ordersConfigured(s = loadSettings()) {
+  return Boolean(s.orderToken && cleanRepo(s.orderRepo));
+}
+
+// Anahtar sayfada açık metin olarak durmaz (GitHub'ın taramasına takılıp iptal edilmesin diye ters çevrilip kodlanır).
+const hideToken = (t) => Buffer.from(String(t).split('').reverse().join(''), 'utf8').toString('base64');
+
+// Sipariş şifreleme anahtar çifti ilk gerektiğinde oluşturulur; gizli anahtar yalnız bu bilgisayarda kalır.
+function orderKeys() {
+  const s = loadSettings();
+  if (!s.orderKeyPrivate || !s.orderKeyPublic) {
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+    s.orderKeyPublic = publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
+    s.orderKeyPrivate = privateKey.export({ type: 'pkcs8', format: 'pem' });
+    saveSettings(s);
+  }
+  return { pub: s.orderKeyPublic, priv: s.orderKeyPrivate };
+}
+
+// Tarayıcının WebCrypto ile ürettiği zarfı açar: k = RSA-OAEP(SHA-256) ile şifreli AES anahtarı,
+// iv = 12 bayt, d = AES-256-GCM şifreli metin + 16 bayt doğrulama etiketi.
+function decryptOrder(env) {
+  const key = crypto.privateDecrypt(
+    { key: orderKeys().priv, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' },
+    Buffer.from(env.k, 'base64')
+  );
+  const data = Buffer.from(env.d, 'base64');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(env.iv, 'base64'));
+  decipher.setAuthTag(data.subarray(data.length - 16));
+  return JSON.parse(Buffer.concat([decipher.update(data.subarray(0, data.length - 16)), decipher.final()]).toString('utf8'));
+}
+
+const clip = (v, n) => String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+
+// Gelen siparişi doğrular ve temizler; ürünler güncel listeyle eşleştirilir (ad ve fiyat buradan alınır,
+// müşterinin sepette gördüğü fiyat da saklanır ki arada fiyat değiştiyse görülsün).
+function cleanOrder(input, source) {
+  if (!input || typeof input !== 'object') throw new Error('Geçersiz sipariş.');
+  const id = String(input.id || '');
+  if (!ORDER_ID.test(id)) throw new Error('Geçersiz sipariş numarası.');
+  const customer = clip(input.customer, 60);
+  if (customer.length < 2) throw new Error('Ad soyad yazılmalı.');
+  const phone = clip(input.phone, 20).replace(/[^\d+ ()-]/g, '');
+  if (!Array.isArray(input.items) || !input.items.length) throw new Error('Sepet boş.');
+  if (input.items.length > 200) throw new Error('Sepette en fazla 200 çeşit ürün olabilir.');
+  const products = loadProducts();
+  const merged = new Map();
+  for (const it of input.items) {
+    const qty = Math.floor(Number(it && it.qty));
+    if (!Number.isFinite(qty) || qty < 1 || qty > 9999) throw new Error('Geçersiz ürün adedi.');
+    const pid = String((it && it.id) || '').slice(0, 64);
+    const p = products.find((x) => x.id === pid);
+    const seen = Number(it.price);
+    const row = merged.get(pid) || {
+      id: pid,
+      name: p ? p.name : clip(it.name, 120) || 'Bilinmeyen ürün',
+      unit: p ? p.unit : clip(it.unit, 20) || 'Adet',
+      price: p ? p.price : (Number.isFinite(seen) && seen >= 0 ? Math.round(seen * 100) / 100 : 0),
+      seenPrice: Number.isFinite(seen) && seen >= 0 ? Math.round(seen * 100) / 100 : null,
+      qty: 0,
+      missing: !p,
+    };
+    row.qty = Math.min(9999, row.qty + qty);
+    merged.set(pid, row);
+  }
+  const items = [...merged.values()];
+  const now = new Date().toISOString();
+  return {
+    id,
+    name: clip(input.name, 60),
+    customer,
+    phone,
+    note: clip(input.note, 500),
+    items,
+    total: Math.round(items.reduce((t, x) => t + x.price * x.qty, 0) * 100) / 100,
+    seenTotal: Math.round(items.reduce((t, x) => t + (x.seenPrice ?? x.price) * x.qty, 0) * 100) / 100,
+    createdAt: !Number.isNaN(Date.parse(input.createdAt)) && Math.abs(Date.parse(input.createdAt) - Date.now()) < 7 * 864e5
+      ? new Date(input.createdAt).toISOString() : now,
+    receivedAt: now,
+    status: 'yeni',
+    statusAt: now,
+    source,
+  };
+}
+
+// Aynı sipariş (aynı numara) iki kez gelirse ikincisi yok sayılır (müşteri "tekrar dene"ye basmış olabilir).
+function addOrder(order) {
+  const orders = loadOrders();
+  if (orders.some((o) => o.id === order.id)) return false;
+  orders.push(order);
+  saveOrders(orders);
+  console.log(`  Yeni sipariş: ${order.id} · ${order.customer}${order.name ? ' · ' + order.name : ''} · ${order.items.length} çeşit`);
+  schedulePublish(); // müşteri "Siparişiniz alındı" görsün
+  return true;
+}
+
+// Müşteri sayfasına yayınlanan durum listesi: son 60 günün siparişleri, numara → [durum, zaman].
+function orderStatusMap(orders = loadOrders()) {
+  const since = Date.now() - 60 * 864e5;
+  const out = {};
+  for (const o of orders) if (Date.parse(o.createdAt) > since) out[o.id] = [o.status, o.statusAt];
+  return out;
+}
+
+// Sipariş deposundaki açık issue'lar okunur, çözülür, kaydedilir ve issue kapatılır.
+const orderPoll = { lastAt: null, lastError: null, running: false };
+async function fetchOrders() {
+  const s = loadSettings();
+  if (!ordersConfigured(s) || s.ordersEnabled === false || orderPoll.running) return { added: 0 };
+  orderPoll.running = true;
+  let added = 0;
+  try {
+    const repo = cleanRepo(s.orderRepo);
+    const list = await github('GET', `/repos/${repo}/issues?state=open&per_page=100&sort=created&direction=asc`, s.orderToken);
+    if (list.status === 401) throw new Error('Sipariş anahtarı geçersiz veya süresi dolmuş.');
+    if (list.status === 404) throw new Error(`"${repo}" sipariş deposu bulunamadı ya da anahtarın bu depoya erişimi yok.`);
+    if (list.status === 403) throw new Error('Sipariş anahtarının "Issues: Read and write" izni yok.');
+    if (list.status >= 400) throw new Error(`GitHub hatası (${list.status}): ${list.data.message || ''}`);
+    for (const issue of Array.isArray(list.data) ? list.data : []) {
+      if (issue.pull_request) continue;
+      let reason = 'completed';
+      try {
+        const body = String(issue.body || '');
+        if (!body.startsWith(ORDER_MARK)) throw new Error('sipariş değil');
+        const order = cleanOrder(decryptOrder(JSON.parse(Buffer.from(body.slice(ORDER_MARK.length).trim(), 'base64').toString('utf8'))), 'internet');
+        if (addOrder(order)) added++;
+      } catch (e) {
+        reason = 'not_planned';
+        logError(new Error(`Sipariş #${issue.number} okunamadı: ${e.message}`));
+      }
+      const closed = await github('PATCH', `/repos/${repo}/issues/${issue.number}`, s.orderToken, { state: 'closed', state_reason: reason });
+      if (closed.status >= 400) throw new Error(`Sipariş alındı ama depoda kapatılamadı (${closed.status}).`);
+    }
+    orderPoll.lastError = null;
+  } catch (e) {
+    orderPoll.lastError = e.message === 'fetch failed' ? 'İnternete bağlanılamadı.' : e.message;
+  } finally {
+    orderPoll.lastAt = new Date().toISOString();
+    orderPoll.running = false;
+  }
+  return { added };
+}
+setInterval(() => fetchOrders().catch(() => {}), 20000).unref();
+
+// Yerel ağdan gelen siparişler için basit sınır: aynı adresten dakikada en fazla 10 sipariş.
+const orderHits = new Map();
+function orderRateOk(ip) {
+  const now = Date.now();
+  const hits = (orderHits.get(ip) || []).filter((t) => now - t < 60000);
+  hits.push(now);
+  orderHits.set(ip, hits);
+  return hits.length <= 10;
 }
 
 // ---------- Yardımcılar ----------
@@ -418,8 +605,24 @@ async function handleApi(req, res, url) {
 
   // Müşterinin gördüğü katalog (sadece aktif ürünler)
   if (pathname === '/api/catalog' && method === 'GET') {
-    return send(res, 200, catalogData());
+    return send(res, 200, catalogData(loadProducts(), loadSettings(), 'local'));
   }
+
+  // Dükkân Wi-Fi'ından açılan sayfadan gelen sipariş
+  if (pathname === '/api/orders' && method === 'POST') {
+    if (loadSettings().ordersEnabled === false) return send(res, 403, { error: 'Sipariş alma şu an kapalı.' });
+    if (!orderRateOk(req.socket.remoteAddress)) return send(res, 429, { error: 'Çok fazla deneme. Biraz bekleyin.' });
+    let order;
+    try {
+      order = cleanOrder(JSON.parse(await readBody(req, 200 * 1024)), 'yerel');
+    } catch (e) {
+      return send(res, 400, { error: e.message });
+    }
+    addOrder(order);
+    return send(res, 200, { ok: true, id: order.id });
+  }
+
+  if (pathname === '/api/order-status' && method === 'GET') return send(res, 200, orderStatusMap());
 
   if (pathname === '/api/login' && method === 'POST') {
     const { password } = await readJsonBody(req);
@@ -528,18 +731,54 @@ async function handleApi(req, res, url) {
     return send(res, 200, categoryList(loadProducts(), s));
   }
 
+  // ---- Siparişler ----
+  if (route === 'orders' && method === 'GET') {
+    return send(res, 200, { orders: loadOrders(), poll: { ...orderPoll, configured: ordersConfigured() } });
+  }
+
+  if (route === 'orders/check' && method === 'POST') {
+    const r = await fetchOrders();
+    return send(res, 200, { ...r, poll: { ...orderPoll, configured: ordersConfigured() } });
+  }
+
+  const orderMatch = route.match(/^orders\/([A-Z0-9]+)$/);
+  if (orderMatch && method === 'PUT') {
+    const { status } = await readJsonBody(req);
+    if (!ORDER_STATUSES.includes(status)) return send(res, 400, { error: 'Geçersiz durum.' });
+    const orders = loadOrders();
+    const o = orders.find((x) => x.id === orderMatch[1]);
+    if (!o) return send(res, 404, { error: 'Sipariş bulunamadı.' });
+    o.status = status;
+    o.statusAt = new Date().toISOString();
+    saveOrders(orders);
+    schedulePublish(); // müşteri durumu görsün
+    return send(res, 200, o);
+  }
+
+  if (orderMatch && method === 'DELETE') {
+    const orders = loadOrders();
+    const next = orders.filter((x) => x.id !== orderMatch[1]);
+    if (next.length === orders.length) return send(res, 404, { error: 'Sipariş bulunamadı.' });
+    saveOrders(next);
+    schedulePublish();
+    return send(res, 200, { ok: true });
+  }
+
   if (route === 'settings' && method === 'GET') return send(res, 200, publicSettings());
 
   if (route === 'settings' && method === 'PUT') {
     const input = await readJsonBody(req);
     const s = loadSettings();
-    for (const k of ['shopName', 'slogan', 'phone', 'address', 'publicUrl', 'githubRepo', 'githubBranch', 'siteUrl']) {
+    for (const k of ['shopName', 'slogan', 'phone', 'address', 'publicUrl', 'githubRepo', 'githubBranch', 'siteUrl', 'orderRepo']) {
       if (input[k] !== undefined) s[k] = String(input[k]).trim();
     }
     if (input.githubToken) s.githubToken = String(input.githubToken).trim();
+    if (input.orderToken) s.orderToken = String(input.orderToken).trim();
     if (input.autoPublish !== undefined) s.autoPublish = Boolean(input.autoPublish);
+    if (input.ordersEnabled !== undefined) s.ordersEnabled = Boolean(input.ordersEnabled);
     saveSettings(s);
     schedulePublish();
+    if (input.orderToken || input.orderRepo !== undefined) fetchOrders().catch(() => {});
     return send(res, 200, publicSettings(s));
   }
 
@@ -623,6 +862,10 @@ function onListening() {
     console.log(`\n  !!! DİKKAT: Basılı QR kod ${publicUrl} adresine yönleniyor,`);
     console.log('  !!! ama bu bilgisayarın adresi değişmiş. Müşteriler sayfayı açamaz.');
     console.log('  !!! Çözüm: Yönetim paneli > QR Kod sekmesindeki talimatlara bakın.');
+  }
+  if (ordersConfigured()) {
+    console.log('  İnternetten sipariş alma açık (20 sn\'de bir kontrol edilir).');
+    fetchOrders().catch(() => {});
   }
   if (ADMIN_PASSWORD === 'dilek123') console.log('\n  Uyarı: Varsayılan şifre (dilek123) kullanılıyor. ADMIN_PASSWORD ile değiştirin.');
   console.log('\n  Kapatmak için bu pencerede Ctrl+C\n');

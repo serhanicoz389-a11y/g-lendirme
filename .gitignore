@@ -4,3 +4,4 @@ node/
 node-v*/
 data/settings.json
 hata-kaydi.txt
+data/orders.json

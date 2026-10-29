@@ -52,6 +52,41 @@
     .totals { display: flex; justify-content: flex-end; gap: 24px; padding: 12px 8px 0; font-size: 18px; }
     .totals strong { color: var(--brand-dark); }
 
+    /* ---------- Siparişler ---------- */
+    .tbadge { display: inline-block; min-width: 20px; padding: 1px 6px; margin-left: 4px; border-radius: 10px; background: #fff; color: var(--brand);
+      font-size: 12px; font-weight: 700; text-align: center; }
+    .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+    .seg button { border: 1px solid var(--line); background: #fff; border-radius: 18px; padding: 6px 12px; cursor: pointer; font-size: 14px; }
+    .seg button.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .seg button b { margin-left: 4px; }
+    .oc { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; }
+    .oc.st-yeni { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,.15); }
+    .oc-h { display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: space-between; align-items: flex-start; padding: 14px 16px; background: #fafafa; border-bottom: 1px solid var(--line); }
+    .oc-title { font-size: 17px; font-weight: 700; }
+    .oc-code { font-family: ui-monospace, Consolas, monospace; background: #f3f4f6; border-radius: 6px; padding: 1px 6px; font-size: 13px; margin-left: 6px; }
+    .oc-who { font-size: 14px; margin-top: 3px; }
+    .oc-who a { color: var(--brand); }
+    .oc-when { font-size: 13px; color: var(--muted); text-align: right; }
+    .oc-b { padding: 4px 16px 14px; }
+    .oc-b table td, .oc-b table th { padding: 6px 8px; }
+    .oc-b .r { text-align: right; }
+    .oc-warn { color: #b45309; font-size: 12px; display: block; }
+    .oc-miss { color: var(--danger); font-size: 12px; display: block; }
+    .oc-tot { text-align: right; font-size: 18px; padding: 10px 8px 0; }
+    .oc-tot strong { color: var(--brand-dark); }
+    .oc-note { background: #fff8e1; border-radius: 8px; padding: 8px 10px; margin-top: 10px; font-size: 14px; }
+    .oc-a { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); }
+    .oc-a .grow { flex: 1; }
+    .stb { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 7px 12px; cursor: pointer; font-size: 14px; }
+    .stb.on { font-weight: 700; color: #fff; }
+    .stb.on[data-st=yeni] { background: #3b82f6; border-color: #3b82f6; }
+    .stb.on[data-st=hazirlaniyor] { background: #f59e0b; border-color: #f59e0b; }
+    .stb.on[data-st=hazir] { background: #16a34a; border-color: #16a34a; }
+    .stb.on[data-st=teslim] { background: #4b5563; border-color: #4b5563; }
+    .stb.on[data-st=iptal] { background: var(--danger); border-color: var(--danger); }
+    .src { font-size: 12px; border-radius: 10px; padding: 1px 8px; background: #eef2ff; color: #3730a3; margin-left: 6px; }
+    .poll { font-size: 13px; }
+
     /* ---------- QR ---------- */
     .qr-layout { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(260px, 380px); gap: 20px; align-items: start; }
     @media (max-width: 760px) { .qr-layout { grid-template-columns: 1fr; } }
@@ -125,6 +160,7 @@
       <h1>Dilek Ofis · Yönetim</h1>
       <nav class="tabs">
         <button class="tab active" data-tab="products">Ürünler &amp; Fiyatlar</button>
+        <button class="tab" data-tab="orders">Siparişler<span class="tbadge hidden" id="ord-badge"></span></button>
         <button class="tab" data-tab="categories">Kategoriler</button>
         <button class="tab" data-tab="order">Sipariş Formu</button>
         <button class="tab" data-tab="qr">QR Kod</button>
@@ -181,6 +217,17 @@
       </div>
       <p class="count" id="p-count"></p>
       <p class="muted" style="font-size:14px">İpucu: Hücreye tıklayıp değeri değiştirin; kutudan çıkınca otomatik kaydedilir.</p>
+    </section>
+
+    <!-- ---------- Siparişler (müşterilerin sitede onayladığı sepetler) ---------- -->
+    <section class="page hidden" id="tab-orders">
+      <div class="bar">
+        <div class="seg" id="ord-seg"></div>
+        <input class="grow" id="ord-search" type="search" placeholder="Müşteri adı, telefon, sipariş adı ya da numarası…">
+        <button class="btn" id="ord-check" title="İnternetten gelen siparişlere hemen bak">↻ Şimdi kontrol et</button>
+      </div>
+      <div class="poll muted" id="ord-poll"></div>
+      <div id="ord-list" style="margin-top:12px"></div>
     </section>
 
     <!-- ---------- Kategoriler ---------- -->
@@ -352,6 +399,42 @@
             <b>baslat.bat</b> açık olmalı; müşteriler için açık olması gerekmez.</p>
         </details>
       </div>
+
+      <div class="panel" style="max-width:640px" id="orders-panel">
+        <h3>🛒 İnternetten Sipariş Alma</h3>
+        <p class="muted" style="font-size:14px; margin-top:0">
+          Müşteri sitede sepetini onaylayınca sipariş, GitHub'daki gizli <b>sipariş deposuna</b> şifreli olarak bırakılır;
+          bu program 20 saniyede bir bakıp <b>Siparişler</b> sekmesine getirir. Bilgisayar kapalıyken gelen siparişler
+          depoda bekler, kaybolmaz. Dükkân Wi-Fi'ından açılan sayfadaki siparişler ise doğrudan gelir (kurulum gerekmez).
+        </p>
+        <div class="pub-state" id="ord-state"></div>
+        <div style="display:grid; gap:12px">
+          <label class="field">Sipariş deposu (kuruluş/depo)<input id="or-repo" type="text" placeholder="dilekofis/siparisler"></label>
+          <label class="field">Sipariş anahtarı (token)
+            <input id="or-token" type="password" placeholder="github_pat_…" autocomplete="off"></label>
+          <label style="display:flex; gap:8px; align-items:center; font-size:14px">
+            <input type="checkbox" id="or-on"> Müşteriler sitede sipariş verebilsin</label>
+        </div>
+        <div class="bar" style="margin:14px 0 0">
+          <button class="btn primary" id="or-save">Kaydet</button>
+        </div>
+        <details style="margin-top:16px" id="or-guide">
+          <summary style="cursor:pointer; color:var(--brand); font-weight:600">Kurulum rehberi (bir kereliğine, ~5 dakika)</summary>
+          <ol class="steps">
+            <li><a href="https://github.com/organizations/dilekofis/repositories/new" target="_blank">github.com/organizations/dilekofis/repositories/new</a>
+              adresini açın. <b>Repository name:</b> <code>siparisler</code> yazın, <b>Private</b> seçin, <b>Create repository</b> deyin.</li>
+            <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank">github.com/settings/personal-access-tokens/new</a> adresini açın.
+              <b>Token name:</b> <code>dilekofis-siparis</code> · <b>Resource owner:</b> <code>dilekofis</code> · <b>Expiration:</b> en uzun süre.</li>
+            <li><b>Repository access:</b> "Only select repositories" → yalnız <code>siparisler</code>.</li>
+            <li><b>Permissions → Issues:</b> "Read and write" (başka izin vermeyin).</li>
+            <li><b>Generate token</b> deyip anahtarı kopyalayın, yukarıdaki kutuya yapıştırıp <b>Kaydet</b> deyin.
+              Durum yazısı "✔ Sipariş deposuna bağlı" olmalı. Site birkaç dakika içinde sipariş almaya başlar.</li>
+          </ol>
+          <p class="muted" style="font-size:13px">Bu anahtar müşteri sayfasına (şifrelenmiş ve gizlenmiş olarak) konur ve yalnız
+            sipariş deposuna sipariş bırakabilir; ürünlerinize, sitenize ya da hesabınızın başka bir yerine dokunamaz.
+            Siparişlerin içeriği dükkânın şifre anahtarıyla şifrelendiği için depoyu gören biri de okuyamaz.</p>
+        </details>
+      </div>
     </section>
   </div>
 
@@ -410,6 +493,7 @@
       $('login').classList.add('hidden');
       $('app').classList.remove('hidden');
       await Promise.all([loadProducts(), loadSettings()]);
+      await loadOrders(false);
       return true;
     }
 
@@ -431,6 +515,7 @@
       document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t === tab));
       document.querySelectorAll('.page').forEach((p) => p.classList.toggle('hidden', p.id !== 'tab-' + tab.dataset.tab));
       if (tab.dataset.tab === 'qr') initQr();
+      if (tab.dataset.tab === 'orders') renderOrders();
     }));
 
     // ================= Ürünler =================
@@ -821,6 +906,239 @@
       </div>`);
     });
 
+    // ================= Siparişler =================
+    // Müşterilerin sitede onayladığı sepetler. 10 sn'de bir yenilenir; yeni sipariş gelince ses, uyarı ve sekmede sayı.
+    const ST = [
+      ['yeni', 'Yeni'], ['hazirlaniyor', 'Hazırlanıyor'], ['hazir', 'Hazır'], ['teslim', 'Teslim edildi'], ['iptal', 'İptal'],
+    ];
+    const stName = (k) => (ST.find((x) => x[0] === k) || [k, k])[1];
+    let orders = [];
+    let orderPollInfo = null;
+    let ordFilter = 'acik';
+    let knownOrders = null;
+    const baseTitle = document.title;
+    const fmtId = (id) => id.slice(0, 4) + '-' + id.slice(4);
+    const when = (iso) => new Date(iso).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    function ago(iso) {
+      const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+      if (m < 1) return 'az önce';
+      if (m < 60) return m + ' dk önce';
+      if (m < 1440) return Math.round(m / 60) + ' saat önce';
+      return Math.round(m / 1440) + ' gün önce';
+    }
+
+    async function loadOrders(fromPoll) {
+      if (!password) return;
+      let r;
+      try { r = await api('/api/admin/orders'); } catch { return; }
+      orders = r.orders.sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
+      orderPollInfo = r.poll;
+      const ids = new Set(orders.map((o) => o.id));
+      if (knownOrders && fromPoll) {
+        const fresh = orders.filter((o) => !knownOrders.has(o.id));
+        if (fresh.length) {
+          ding();
+          toast(fresh.length === 1 ? `Yeni sipariş: ${fresh[0].customer}${fresh[0].name ? ' · ' + fresh[0].name : ''}` : `${fresh.length} yeni sipariş geldi`);
+        }
+      }
+      knownOrders = ids;
+      renderOrderBadge();
+      if (!$('tab-orders').classList.contains('hidden')) renderOrders();
+      renderOrderState();
+    }
+
+    function renderOrderBadge() {
+      const n = orders.filter((o) => o.status === 'yeni').length;
+      $('ord-badge').textContent = n;
+      $('ord-badge').classList.toggle('hidden', !n);
+      document.title = n ? `(${n}) Yeni sipariş · ${baseTitle}` : baseTitle;
+    }
+
+    // Kısa iki tonlu uyarı sesi (dosya gerektirmez).
+    let audioCtx = null;
+    function ding() {
+      try {
+        audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+        [0, 0.18].forEach((t, i) => {
+          const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+          o.frequency.value = i ? 1320 : 880;
+          g.gain.setValueAtTime(0.0001, audioCtx.currentTime + t);
+          g.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + t + 0.35);
+          o.connect(g); g.connect(audioCtx.destination);
+          o.start(audioCtx.currentTime + t); o.stop(audioCtx.currentTime + t + 0.4);
+        });
+      } catch {}
+    }
+
+    const FILTERS = [
+      ['acik', 'Bekleyenler', (o) => ['yeni', 'hazirlaniyor', 'hazir'].includes(o.status)],
+      ['yeni', 'Yeni', (o) => o.status === 'yeni'],
+      ['hazirlaniyor', 'Hazırlanıyor', (o) => o.status === 'hazirlaniyor'],
+      ['hazir', 'Hazır', (o) => o.status === 'hazir'],
+      ['teslim', 'Teslim edildi', (o) => o.status === 'teslim'],
+      ['iptal', 'İptal', (o) => o.status === 'iptal'],
+      ['hepsi', 'Hepsi', () => true],
+    ];
+
+    function renderOrders() {
+      $('ord-seg').innerHTML = FILTERS.map(([k, label, f]) =>
+        `<button data-f="${k}" class="${k === ordFilter ? 'on' : ''}">${label}<b>${orders.filter(f).length}</b></button>`).join('');
+      const q = norm($('ord-search').value.trim());
+      const f = FILTERS.find((x) => x[0] === ordFilter)[2];
+      const list = orders.filter((o) => f(o) && (!q || norm([o.customer, o.phone, o.name, o.id, fmtId(o.id), o.note].join(' ')).includes(q)));
+      if (!list.length) {
+        $('ord-list').innerHTML = `<div class="panel muted" style="text-align:center; padding:40px">${orders.length
+          ? 'Bu listede sipariş yok.' : 'Henüz sipariş gelmedi. Müşteriler sitede sepetlerini onayladığında burada görünür.'}</div>`;
+        return;
+      }
+      $('ord-list').innerHTML = list.map(orderCard).join('');
+    }
+
+    function orderCard(o) {
+      const qty = o.items.reduce((s, x) => s + x.qty, 0);
+      const priceChanged = o.items.some((x) => x.seenPrice != null && x.seenPrice !== x.price);
+      const rows = o.items.map((x, i) => `<tr><td class="r muted">${i + 1}</td>
+        <td>${esc(x.name)}${x.missing ? '<span class="oc-miss">Bu ürün artık listede yok</span>' : ''}${
+          x.seenPrice != null && x.seenPrice !== x.price ? `<span class="oc-warn">Müşteri sepette ${fmt.format(x.seenPrice)} gördü, şimdiki fiyat ${fmt.format(x.price)}</span>` : ''}</td>
+        <td class="r"><b>${x.qty}</b> ${esc(x.unit)}</td><td class="r">${fmt.format(x.price)}</td><td class="r">${fmt.format(x.price * x.qty)}</td></tr>`).join('');
+      return `<div class="oc st-${o.status}" data-id="${o.id}">
+        <div class="oc-h">
+          <div>
+            <div class="oc-title">${esc(o.name || 'Sipariş')}<span class="oc-code">${fmtId(o.id)}</span>
+              <span class="src">${o.source === 'yerel' ? 'Dükkân Wi-Fi' : 'İnternet'}</span></div>
+            <div class="oc-who"><b>${esc(o.customer)}</b>${o.phone ? ` · <a href="tel:${esc(o.phone.replace(/[^\d+]/g, ''))}">${esc(o.phone)}</a>` : ''}</div>
+          </div>
+          <div class="oc-when">${when(o.createdAt)}<br>${ago(o.createdAt)}</div>
+        </div>
+        <div class="oc-b">
+          <table><thead><tr><th class="r" style="width:30px">#</th><th>Ürün</th><th class="r" style="width:110px">Adet</th>
+            <th class="r" style="width:110px">Birim fiyat</th><th class="r" style="width:110px">Tutar</th></tr></thead><tbody>${rows}</tbody></table>
+          <div class="oc-tot">${o.items.length} çeşit, ${qty} ürün · Toplam: <strong>${fmt.format(o.total)}</strong>${
+            priceChanged ? `<div class="oc-warn">Müşterinin gördüğü toplam: ${fmt.format(o.seenTotal)}</div>` : ''}</div>
+          ${o.note ? `<div class="oc-note"><b>Not:</b> ${esc(o.note)}</div>` : ''}
+        </div>
+        <div class="oc-a">
+          ${ST.map(([k, label]) => `<button class="stb${o.status === k ? ' on' : ''}" data-st="${k}">${label}</button>`).join('')}
+          <span class="grow"></span>
+          <button class="btn small" data-print>🖨 Yazdır</button>
+          <button class="btn small" data-form title="Sipariş Formu sekmesine aktarır; iskonto ekleyip düzenleyebilirsiniz">Sipariş formuna aktar</button>
+          <button class="btn small danger" data-odel title="Siparişi listeden siler">Sil</button>
+        </div>
+      </div>`;
+    }
+
+    $('ord-seg').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-f]');
+      if (!b) return;
+      ordFilter = b.dataset.f;
+      renderOrders();
+    });
+    $('ord-search').addEventListener('input', renderOrders);
+    $('ord-check').addEventListener('click', async () => {
+      $('ord-check').disabled = true;
+      try {
+        const r = await api('/api/admin/orders/check', { method: 'POST' });
+        orderPollInfo = r.poll;
+        await loadOrders(true);
+        if (!r.added && !orderPollInfo.lastError) toast('Yeni sipariş yok');
+      } finally { $('ord-check').disabled = false; }
+    });
+
+    $('ord-list').addEventListener('click', async (e) => {
+      const card = e.target.closest('.oc');
+      if (!card) return;
+      const o = orders.find((x) => x.id === card.dataset.id);
+      const st = e.target.closest('[data-st]');
+      if (st) {
+        if (st.dataset.st === o.status) return;
+        if (st.dataset.st === 'iptal' && !confirm(`${o.customer} adlı müşterinin siparişi iptal edilsin mi? Müşteri sitede "İptal edildi" görür.`)) return;
+        const updated = await api('/api/admin/orders/' + o.id, { method: 'PUT', body: JSON.stringify({ status: st.dataset.st }) });
+        Object.assign(o, updated);
+        renderOrderBadge();
+        renderOrders();
+        toast(`Durum: ${stName(o.status)} — müşteri birkaç dakika içinde görür`);
+      } else if (e.target.closest('[data-print]')) {
+        printOrder(o);
+      } else if (e.target.closest('[data-form]')) {
+        if (orderItems.length && !confirm('Sipariş formundaki mevcut ürünlerin yerine bu sipariş konulsun mu?')) return;
+        orderItems = o.items.map((x) => ({ id: x.id, name: x.name, unit: x.unit, price: x.price, qty: x.qty }));
+        $('o-customer').value = o.customer;
+        $('o-phone').value = o.phone || '';
+        $('o-note').value = [o.name, o.note].filter(Boolean).join(' · ') + ` (Sipariş no ${fmtId(o.id)})`;
+        $('o-discount').value = 0;
+        renderOrder();
+        document.querySelector('.tab[data-tab=order]').click();
+        toast('Sipariş formuna aktarıldı');
+      } else if (e.target.closest('[data-odel]')) {
+        if (!confirm(`${o.customer} adlı müşterinin ${fmtId(o.id)} numaralı siparişi silinsin mi? Bu işlem geri alınamaz.`)) return;
+        await api('/api/admin/orders/' + o.id, { method: 'DELETE' });
+        orders = orders.filter((x) => x.id !== o.id);
+        renderOrderBadge();
+        renderOrders();
+        toast('Sipariş silindi');
+      }
+    });
+
+    function printOrder(o) {
+      const rows = o.items.map((x, i) => `<tr><td class="r">${i + 1}</td><td>${esc(x.name)}</td><td class="r">${x.qty}</td><td>${esc(x.unit)}</td>
+        <td class="r">${fmt.format(x.price)}</td><td class="r">${fmt.format(x.qty * x.price)}</td></tr>`).join('');
+      printHtml(`<div class="doc">
+        ${shopHeaderHtml(`<div><b>Sipariş No:</b> ${fmtId(o.id)}</div><div><b>Tarih:</b> ${when(o.createdAt)}</div>`)}
+        <div class="doc-title">SİPARİŞ</div>
+        <div class="doc-info">
+          <div><b>Müşteri:</b> ${esc(o.customer)}</div>
+          <div><b>Telefon:</b> ${esc(o.phone) || '-'}</div>
+          ${o.name ? `<div><b>Sipariş adı:</b> ${esc(o.name)}</div>` : ''}
+          ${o.note ? `<div style="grid-column:1/-1"><b>Not:</b> ${esc(o.note)}</div>` : ''}
+        </div>
+        <table>
+          <thead><tr><th class="r" style="width:30px">#</th><th>Ürün</th><th class="r" style="width:60px">Miktar</th><th style="width:60px">Birim</th>
+            <th class="r" style="width:95px">Birim Fiyat</th><th class="r" style="width:105px">Tutar</th></tr></thead>
+          <tbody>${rows}<tr class="total-row"><td colspan="5" class="r">GENEL TOPLAM</td><td class="r">${fmt.format(o.total)}</td></tr></tbody>
+        </table>
+        <p style="font-size:11px">Fiyatlara KDV dahildir.</p>
+        <div class="sign"><div>Hazırlayan</div><div>Teslim Alan</div></div>
+      </div>`);
+    }
+
+    // İnternetten sipariş alma durumunun yazısı (Siparişler sekmesi ve Ayarlar)
+    function renderOrderState() {
+      const p = orderPollInfo;
+      let html;
+      if (!p || !p.configured) {
+        html = settings.ordersEnabled === false
+          ? 'Sipariş alma kapalı.'
+          : 'İnternetteki siteden sipariş alma <b>kurulmadı</b> (Ayarlar › İnternetten Sipariş Alma). Dükkân Wi-Fi\'ından verilen siparişler yine gelir.';
+      } else if (p.lastError) {
+        html = `<span style="color:var(--danger)">⚠ İnternetteki siparişler alınamıyor: ${esc(p.lastError)}</span>`;
+      } else {
+        html = `<span style="color:var(--ok)">✔ Sipariş deposuna bağlı.</span>${p.lastAt ? ` Son kontrol: ${new Date(p.lastAt).toLocaleTimeString('tr-TR')}` : ''}`;
+      }
+      $('ord-poll').innerHTML = html;
+      $('ord-state').innerHTML = html;
+    }
+
+    function fillOrderForm() {
+      $('or-repo').value = settings.orderRepo || '';
+      $('or-on').checked = settings.ordersEnabled !== false;
+      $('or-token').value = '';
+      $('or-token').placeholder = settings.orderTokenSet ? '•••••••• (kayıtlı — değiştirmek için yenisini yapıştırın)' : 'github_pat_…';
+      $('or-guide').open = !settings.orderTokenSet;
+    }
+
+    $('or-save').addEventListener('click', async () => {
+      const body = { orderRepo: $('or-repo').value.trim(), ordersEnabled: $('or-on').checked };
+      if ($('or-token').value.trim()) body.orderToken = $('or-token').value.trim();
+      settings = await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify(body) });
+      fillOrderForm();
+      toast('Kaydedildi — sipariş deposu kontrol ediliyor…');
+      setTimeout(() => loadOrders(true), 2500);
+    });
+
+    setInterval(() => loadOrders(true), 10000);
+
     // ================= QR =================
     let qrReady = false;
 
@@ -916,6 +1234,7 @@
       settings = await api('/api/admin/settings');
       for (const k of SETTING_FIELDS) $('s-' + k).value = settings[k] || '';
       fillPublishForm();
+      fillOrderForm();
       refreshPublish();
     }
 
@@ -988,6 +1307,7 @@
       settings = await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify(body) });
       qrReady = false;
       fillPublishForm();
+      fillOrderForm();
       refreshPublish();
     }
     $('g-save').onclick = async () => { await savePublishSettings(); toast('Kaydedildi'); };

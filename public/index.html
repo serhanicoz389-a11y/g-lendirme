@@ -62,28 +62,123 @@
     footer { text-align: center; color: #6b7280; font-size: 13px; padding: 10px 16px 30px; }
     footer a { color: #c2185b; }
     #err { color: #b91c1c; font-size: 12px; padding: 0 16px 20px; word-break: break-all; }
+    /* ---------- Sepet ve siparişler ---------- */
+    body { padding-bottom: 76px; }
+    .found { margin: 14px 4px 0; font-size: 14px; color: #6b7280; }
+    .item .info { flex: 1; min-width: 0; }
+    .item .side { margin-left: 12px; text-align: right; }
+    .item .price { margin-left: 0; display: block; }
+    .add { margin-top: 6px; border: 1px solid #c2185b; background: #fff; color: #c2185b; border-radius: 18px; padding: 5px 14px;
+      font-size: 14px; font-weight: bold; }
+    .qty { display: inline-flex; align-items: center; margin-top: 6px; border: 1px solid #c2185b; border-radius: 18px; overflow: hidden; }
+    .qty button { width: 36px; height: 32px; border: 0; background: #c2185b; color: #fff; font-size: 20px; font-weight: bold; line-height: 1; padding: 0; }
+    .qty b { min-width: 34px; text-align: center; font-size: 15px; }
+    .qty.big button { width: 48px; height: 44px; font-size: 24px; }
+    .qty.big b { min-width: 52px; font-size: 20px; }
+    #tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; background: #fff; border-top: 1px solid #e5e7eb;
+      padding-bottom: env(safe-area-inset-bottom); }
+    #tabbar button { flex: 1; border: 0; background: none; padding: 9px 2px 10px; font-size: 12px; color: #6b7280; position: relative; }
+    #tabbar button i { display: block; font-style: normal; font-size: 21px; line-height: 24px; color: #9ca3af; }
+    #tabbar button.on, #tabbar button.on i { color: #c2185b; font-weight: bold; }
+    #tabbar .badge { position: absolute; top: 4px; left: 50%; margin-left: 6px; min-width: 19px; height: 19px; border-radius: 10px;
+      background: #c2185b; color: #fff; font-size: 11px; font-weight: bold; line-height: 19px; padding: 0 5px; }
+    .view { max-width: 760px; margin: 0 auto; padding: 0 16px 30px; }
+    .vt { font-size: 24px; margin: 0; padding: 20px 4px 12px; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+    .ci { display: flex; align-items: center; padding: 12px 0; border-top: 1px solid #e5e7eb; }
+    .ci:first-child { border-top: 0; padding-top: 0; }
+    .ci .info { flex: 1; min-width: 0; }
+    .ci .name { font-weight: bold; }
+    .ci .sub { font-size: 13px; color: #6b7280; }
+    .ci .line { margin-left: 10px; text-align: right; white-space: nowrap; }
+    .ci .line b { display: block; color: #8e0f42; }
+    .ci.gone .name { color: #9ca3af; text-decoration: line-through; }
+    .link { border: 0; background: none; color: #b91c1c; font-size: 13px; padding: 4px 0; }
+    .sum { display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; }
+    .sum b { font-size: 26px; color: #8e0f42; }
+    .fl { display: block; margin: 12px 0 0; font-size: 14px; font-weight: bold; }
+    .fl small { font-weight: normal; color: #6b7280; }
+    .fl input, .fl textarea { display: block; width: 100%; margin-top: 5px; border: 1px solid #d1d5db; border-radius: 8px; padding: 11px 12px;
+      font-family: inherit; font-size: 16px; background: #fff; -webkit-appearance: none; }
+    .fl.bad input { border-color: #b91c1c; }
+    .ferr { color: #b91c1c; font-size: 13px; margin-top: 4px; }
+    .hint { font-size: 13px; color: #6b7280; margin-top: 4px; font-weight: normal; }
+    .big-btn { display: block; width: 100%; margin-top: 16px; border: 0; border-radius: 10px; padding: 16px; background: #c2185b; color: #fff;
+      font-size: 18px; font-weight: bold; }
+    .big-btn[disabled] { opacity: .6; }
+    .sec-btn { display: block; width: 100%; margin-top: 10px; border: 0; border-radius: 10px; padding: 14px; background: #f1f2f5;
+      color: #1f2430; font-weight: bold; }
+    .notice { background: #fff8e1; border: 1px solid #f5d77a; border-radius: 10px; padding: 12px; font-size: 14px; margin-bottom: 12px; }
+    .notice.err { background: #fdecec; border-color: #f3b4b4; color: #8b1a1a; }
+    .blank { text-align: center; padding: 40px 10px; color: #6b7280; }
+    .blank b { display: block; font-size: 18px; color: #1f2430; margin-bottom: 6px; }
+    .ok-box { text-align: center; padding: 30px 10px 10px; }
+    .ok-mark { width: 72px; height: 72px; margin: 0 auto 12px; border-radius: 36px; background: #e7f6ec; color: #15803d; font-size: 40px;
+      font-weight: bold; line-height: 72px; }
+    .code { font-size: 30px; font-weight: bold; letter-spacing: 3px; color: #8e0f42; margin: 8px 0; }
+    .oc { cursor: pointer; }
+    .oc-head { display: flex; justify-content: space-between; align-items: flex-start; }
+    .oc-name { font-weight: bold; font-size: 17px; }
+    .oc-meta { font-size: 13px; color: #6b7280; margin-top: 2px; }
+    .oc-total { font-weight: bold; color: #8e0f42; white-space: nowrap; margin-left: 10px; }
+    .st { display: inline-block; margin-top: 8px; border-radius: 14px; padding: 4px 10px; font-size: 13px; font-weight: bold; background: #eef0f3; color: #4b5563; }
+    .st.yeni { background: #e6effd; color: #1d4ed8; }
+    .st.hazirlaniyor { background: #fff3e0; color: #b45309; }
+    .st.hazir { background: #e7f6ec; color: #15803d; }
+    .st.teslim { background: #eef0f3; color: #374151; }
+    .st.iptal { background: #fdecec; color: #b91c1c; }
+    .oc-items { margin-top: 10px; border-top: 1px solid #e5e7eb; padding-top: 8px; font-size: 14px; }
+    .oc-items div { display: flex; justify-content: space-between; padding: 3px 0; }
+    #sheet { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 40; background: rgba(15, 17, 23, .6); overflow-y: auto; }
+    #sheet .box { background: #fff; max-width: 480px; margin: 18vh auto 0; border-radius: 16px; padding: 20px 18px; width: 92%; }
+    #sheet h3 { margin: 0 0 10px; font-size: 20px; }
+    #sheet .row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 15px; }
+    #toast { position: fixed; left: 50%; bottom: 90px; z-index: 50; transform: translateX(-50%); background: #1f2430; color: #fff;
+      border-radius: 20px; padding: 10px 18px; font-size: 15px; font-weight: bold; opacity: 0; transition: opacity .2s; pointer-events: none;
+      white-space: nowrap; }
+    #toast.show { opacity: 1; }
+    .r-add { margin-top: 24px; }
+    .r-add .r-btn { margin-top: 12px; }
+    .r-in { margin-top: 24px; font-size: 16px; font-weight: bold; color: #15803d; }
+    .ic-cart { display: inline-block; position: relative; width: 20px; height: 13px; margin-top: 7px; border: 2px solid currentColor;
+      border-top-width: 3px; border-radius: 1px 1px 5px 5px; }
+    .ic-cart:before { content: ""; position: absolute; left: 3px; right: 3px; top: -9px; height: 7px; border: 2px solid currentColor;
+      border-bottom: 0; border-radius: 6px 6px 0 0; }
   </style>
 </head>
 <body>
-  <header>
-    <h1 id="shop-name">Dilek Ofis</h1>
-    <p id="slogan">Kırtasiye &amp; Ofis Malzemeleri</p>
-  </header>
+  <div id="v-list">
+    <header>
+      <h1 id="shop-name">Dilek Ofis</h1>
+      <p id="slogan">Kırtasiye &amp; Ofis Malzemeleri</p>
+    </header>
 
-  <div class="toolbar">
-    <div class="search-row">
-      <input id="search" type="text" placeholder="Ürün ara… (örn. defter, kalem)" autocomplete="off">
-      <button class="scan-btn" id="scan-open" type="button">Okut</button>
+    <div class="toolbar">
+      <div class="search-row">
+        <input id="search" type="text" placeholder="Ürün ara… (örn. defter, kalem)" autocomplete="off">
+        <button class="scan-btn" id="scan-open" type="button">Okut</button>
+      </div>
+      <div class="chips" id="chips"></div>
     </div>
-    <div class="chips" id="chips"></div>
+
+    <main id="catalog"><p class="empty">Yükleniyor…</p></main>
+
+    <footer>
+      <div id="contact"></div>
+      <div id="updated"></div>
+    </footer>
   </div>
 
-  <main id="catalog"><p class="empty">Yükleniyor…</p></main>
+  <div id="v-cart" class="view hidden"></div>
+  <div id="v-orders" class="view hidden"></div>
 
-  <footer>
-    <div id="contact"></div>
-    <div id="updated"></div>
-  </footer>
+  <nav id="tabbar">
+    <button type="button" data-v="list" class="on"><i>&#9776;</i>Ürünler</button>
+    <button type="button" data-v="scan"><i>&#9638;</i>Okut</button>
+    <button type="button" data-v="cart"><i><span class="ic-cart"></span></i>Sepetim<span class="badge hidden" id="cart-badge"></span></button>
+    <button type="button" data-v="orders"><i>&#9783;</i>Siparişlerim</button>
+  </nav>
+  <div id="toast"></div>
   <div id="err"></div>
 
   <script>
@@ -121,32 +216,69 @@
 
     function byName(a, b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0; }
 
+    // Aramada her kelime ürün adında, kategoride ya da barkodda geçmeli ("kırmızı kalem" → "Kalem Kırmızı" da bulunur).
+    function matches(p, words) {
+      var hay = norm(p.name + ' ' + p.category) + ' ' + String(p.barcode || '');
+      for (var i = 0; i < words.length; i++) if (hay.indexOf(words[i]) < 0) return false;
+      return true;
+    }
+
     function render() {
-      var q = norm($('search').value.replace(/^\s+|\s+$/g, ''));
+      var raw = $('search').value.replace(/^\s+|\s+$/g, ''), q = norm(raw), words = q ? q.split(/\s+/) : [];
       var groups = {}, cats = [], count = 0;
       for (var i = 0; i < products.length; i++) {
         var p = products[i];
         if (activeCategory && p.category !== activeCategory) continue;
-        if (q && norm(p.name).indexOf(q) < 0 && norm(p.category).indexOf(q) < 0 &&
-            !(p.barcode && String(p.barcode).indexOf(q) >= 0)) continue;
+        if (words.length && !matches(p, words)) continue;
         if (!groups[p.category]) { groups[p.category] = []; cats.push(p.category); }
         groups[p.category].push(p);
         count++;
       }
-      if (!count) { $('catalog').innerHTML = '<p class="empty">Aradığınız ürün bulunamadı.</p>'; return; }
+      if (!count) {
+        $('catalog').innerHTML = '<p class="empty">' + (raw ? '“' + esc(raw) + '” için ürün bulunamadı.' : 'Bu kategoride ürün yok.') + '</p>';
+        return;
+      }
       cats.sort(function (a, b) { return catOrder(a) - catOrder(b) || (a < b ? -1 : a > b ? 1 : 0); });
       var html = '';
+      if (raw || activeCategory) {
+        html += '<p class="found">' + (raw ? '“' + esc(raw) + '” için ' : esc(activeCategory) + ' kategorisinde ') +
+          '<b>' + count + ' çeşit</b> ürün bulundu</p>';
+      }
       for (var c = 0; c < cats.length; c++) {
         var list = groups[cats[c]].sort(byName);
         html += '<h2>' + esc(cats[c]) + '</h2><div class="list">';
         for (var j = 0; j < list.length; j++) {
-          html += '<div class="item"><div><div class="name">' + esc(list[j].name) + '</div><div class="unit">' +
-            esc(list[j].unit) + '</div></div><div class="price">' + money(list[j].price) + '</div></div>';
+          html += '<div class="item" data-id="' + esc(list[j].id) + '"><div class="info"><div class="name">' + esc(list[j].name) +
+            '</div><div class="unit">' + esc(list[j].unit) + '</div></div><div class="side">' + sideHtml(list[j]) + '</div></div>';
         }
         html += '</div>';
       }
       $('catalog').innerHTML = html;
     }
+
+    // Ürün satırının sağı: fiyat + "Sepete ekle" ya da adet düğmeleri
+    function sideHtml(p) {
+      var n = cartQty(p.id);
+      return '<span class="price">' + money(p.price) + '</span>' + (n
+        ? '<span class="qty"><button type="button" data-dec="' + esc(p.id) + '" aria-label="Azalt">&minus;</button><b>' + n +
+          '</b><button type="button" data-inc="' + esc(p.id) + '" aria-label="Artır">+</button></span>'
+        : '<button type="button" class="add" data-inc="' + esc(p.id) + '">Sepete ekle</button>');
+    }
+
+    function refreshItem(id) {
+      var rows = document.querySelectorAll('#catalog .item');
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].getAttribute('data-id') !== id) continue;
+        var p = productById(id);
+        if (p) rows[i].querySelector('.side').innerHTML = sideHtml(p);
+      }
+    }
+
+    $('catalog').onclick = function (e) {
+      var t = e.target, inc = t.getAttribute('data-inc'), dec = t.getAttribute('data-dec');
+      if (inc) { cartAdd(inc, 1); refreshItem(inc); }
+      else if (dec) { cartAdd(dec, -1); refreshItem(dec); }
+    };
 
     function renderChips() {
       var html = '<button type="button" class="chip' + (activeCategory ? '' : ' active') + '" data-cat="">Tümü</button>';
@@ -198,6 +330,7 @@
       var s = data.settings || {};
       products = data.products || [];
       categories = data.categories || [];
+      ORDER = data.order || null;
       if (s.shopName) {
         document.title = s.shopName + ' - Fiyat Listesi';
         $('shop-name').textContent = s.shopName;
@@ -213,8 +346,459 @@
       if (m) $('updated').textContent = 'Fiyatlar son güncelleme: ' + m[3] + '.' + m[2] + '.' + m[1] + ' · Fiyatlara KDV dahildir.';
       renderChips();
       render();
+      updateBadge();
+      if (viewFromHash() !== 'list') showView(viewFromHash());
       openFromLink();
     });
+
+    // ---------- Sepet ve siparişler ----------
+    // Sepet ve geçmiş siparişler yalnız müşterinin telefonunda (tarayıcı belleğinde) tutulur.
+    // Sipariş gönderilince:
+    //  • dükkân Wi-Fi'ından açılan sayfada doğrudan dükkândaki programa (/api/orders),
+    //  • internetteki sayfada dükkânın şifre anahtarıyla şifrelenip sipariş deposuna bırakılır; program oradan alır.
+    // Siparişin durumu (alındı, hazırlanıyor, hazır…) dükkânın yayınladığı siparis-durum.json'dan okunur.
+    var ORDER = null; // catalog.order: { local: true } ya da { repo, k, pub }; null = sipariş kapalı
+    var CART = { items: [], name: '', note: '', pending: '' };
+    var ME = { customer: '', phone: '' };
+    var MY_ORDERS = [];
+    var STATUS = null, statusTimer = 0;
+    var ORDER_MARK = 'DILEKOFIS-SIPARIS v1';
+    var ST_TEXT = { yeni: 'Alındı', hazirlaniyor: 'Hazırlanıyor', hazir: 'Hazır · gelip alabilirsiniz', teslim: 'Teslim edildi', iptal: 'İptal edildi' };
+
+    function store(k, v) {
+      try {
+        if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null');
+        localStorage.setItem(k, JSON.stringify(v));
+      } catch (e) { return null; }
+    }
+
+    (function () {
+      var c = store('dlk_cart'), m = store('dlk_me'), o = store('dlk_orders');
+      if (c && c.items && c.items.length !== undefined) CART = { items: c.items, name: c.name || '', note: c.note || '', pending: c.pending || '' };
+      if (m) ME = { customer: m.customer || '', phone: m.phone || '' };
+      if (o && o.length !== undefined) MY_ORDERS = o;
+    })();
+
+    function saveCart() { store('dlk_cart', CART); updateBadge(); }
+
+    function productById(id) {
+      for (var i = 0; i < products.length; i++) if (products[i].id === id) return products[i];
+      return null;
+    }
+
+    function cartQty(id) {
+      for (var i = 0; i < CART.items.length; i++) if (CART.items[i].id === id) return CART.items[i].qty;
+      return 0;
+    }
+
+    function cartAdd(id, d, quiet) {
+      var i, it = null;
+      for (i = 0; i < CART.items.length; i++) if (CART.items[i].id === id) { it = CART.items[i]; break; }
+      if (!it) {
+        if (d <= 0) return;
+        it = { id: id, qty: 0 };
+        CART.items.push(it);
+      }
+      var p = productById(id);
+      if (p) it.name = p.name; // ürün sonradan satıştan kalkarsa sepette adı görünsün
+      it.qty = Math.max(0, Math.min(9999, it.qty + d));
+      if (!it.qty) CART.items.splice(i, 1);
+      CART.pending = ''; // sepet değişti: yeni sipariş numarası alınır
+      saveCart();
+      if (d > 0 && it.qty === d && !quiet) toast('Sepete eklendi');
+    }
+
+    function cartLines() {
+      var out = [];
+      for (var i = 0; i < CART.items.length; i++) out.push({ it: CART.items[i], p: productById(CART.items[i].id) });
+      return out;
+    }
+
+    function cartTotals() {
+      var l = cartLines(), t = 0, n = 0, kinds = 0;
+      for (var i = 0; i < l.length; i++) if (l[i].p) { t += l[i].p.price * l[i].it.qty; n += l[i].it.qty; kinds++; }
+      return { total: Math.round(t * 100) / 100, count: n, kinds: kinds };
+    }
+
+    function updateBadge() {
+      var n = 0;
+      for (var i = 0; i < CART.items.length; i++) n += CART.items[i].qty;
+      var b = $('cart-badge');
+      b.textContent = n > 99 ? '99+' : n;
+      b.className = n ? 'badge' : 'badge hidden';
+    }
+
+    function toast(t) {
+      var el = $('toast');
+      el.textContent = t;
+      el.className = 'show';
+      clearTimeout(toast.t);
+      toast.t = setTimeout(function () { el.className = ''; }, 1600);
+    }
+
+    // ---- Görünümler: Ürünler / Sepetim / Siparişlerim (adres çubuğunda #sepet, #siparislerim; geri tuşu çalışır) ----
+    var VIEW = 'list';
+    function showView(v) {
+      VIEW = v;
+      $('v-list').className = v === 'list' ? '' : 'hidden';
+      $('v-cart').className = v === 'cart' ? 'view' : 'view hidden';
+      $('v-orders').className = v === 'orders' ? 'view' : 'view hidden';
+      var bs = document.querySelectorAll('#tabbar button');
+      for (var i = 0; i < bs.length; i++) bs[i].className = bs[i].getAttribute('data-v') === v ? 'on' : '';
+      clearInterval(statusTimer);
+      if (v === 'cart') renderCart();
+      if (v === 'orders') {
+        renderOrders();
+        loadStatus();
+        statusTimer = setInterval(loadStatus, 30000);
+      }
+      if (v === 'list') refreshList();
+      window.scrollTo(0, 0);
+    }
+
+    // Sepette değişen adetler listeye de yansısın (kaydırma yeri korunur).
+    function refreshList() {
+      var rows = document.querySelectorAll('#catalog .item');
+      for (var i = 0; i < rows.length; i++) {
+        var p = productById(rows[i].getAttribute('data-id'));
+        if (p) rows[i].querySelector('.side').innerHTML = sideHtml(p);
+      }
+    }
+
+    function viewFromHash() {
+      var h = location.hash;
+      return h === '#sepet' ? 'cart' : h === '#siparislerim' ? 'orders' : 'list';
+    }
+    function go(v) {
+      var h = v === 'cart' ? '#sepet' : v === 'orders' ? '#siparislerim' : '';
+      if (location.hash === h || (!h && !location.hash)) return showView(v);
+      if (h) location.hash = h;
+      else if (window.history.replaceState) { history.replaceState(null, '', location.pathname + location.search); showView('list'); }
+      else location.hash = '';
+    }
+    window.onhashchange = function () { showView(viewFromHash()); };
+
+    $('tabbar').onclick = function (e) {
+      var b = e.target;
+      while (b && b.tagName !== 'BUTTON') b = b.parentNode;
+      if (!b) return;
+      var v = b.getAttribute('data-v');
+      if (v === 'scan') scanOpen();
+      else go(v);
+    };
+
+    // ---- Sepetim ----
+    var formErr = {};
+    function renderCart(done) {
+      var el = $('v-cart'), l = cartLines(), t = cartTotals(), h = '<h1 class="vt">Sepetim</h1>';
+      if (done) {
+        el.innerHTML = h + '<div class="card ok-box"><div class="ok-mark">&#10003;</div><b style="font-size:20px">Siparişiniz gönderildi</b>' +
+          '<div class="muted" style="margin-top:6px">Sipariş numaranız</div><div class="code">' + esc(fmtId(done.id)) + '</div>' +
+          (done.name ? '<div><b>' + esc(done.name) + '</b></div>' : '') +
+          '<p class="muted">Siparişiniz hazırlandığında durumunu <b>Siparişlerim</b> bölümünden görebilirsiniz.</p>' +
+          '<button type="button" class="big-btn" data-go="orders">Siparişlerim</button>' +
+          '<button type="button" class="sec-btn" data-go="list">Alışverişe devam et</button></div>';
+        return;
+      }
+      if (!l.length) {
+        el.innerHTML = h + '<div class="card blank"><b>Sepetiniz boş</b>Ürünler listesinden ya da ürünün barkodunu okutarak sepete ekleyebilirsiniz.' +
+          '<button type="button" class="big-btn" data-go="list">Ürünlere göz at</button>' +
+          '<button type="button" class="sec-btn" data-go="scan">Barkod okut</button></div>';
+        return;
+      }
+      h += '<div class="card">';
+      for (var i = 0; i < l.length; i++) {
+        var it = l[i].it, p = l[i].p;
+        if (!p) {
+          h += '<div class="ci gone"><div class="info"><div class="name">' + esc(it.name || 'Ürün') + '</div>' +
+            '<div class="sub">Bu ürün artık satışta değil</div></div><div class="line"><button type="button" class="link" data-rm="' + esc(it.id) + '">Kaldır</button></div></div>';
+          continue;
+        }
+        h += '<div class="ci"><div class="info"><div class="name">' + esc(p.name) + '</div>' +
+          '<div class="sub">' + money(p.price) + ' / ' + esc(p.unit) + '</div>' +
+          '<span class="qty"><button type="button" data-dec="' + esc(p.id) + '" aria-label="Azalt">&minus;</button><b>' + it.qty +
+          '</b><button type="button" data-inc="' + esc(p.id) + '" aria-label="Artır">+</button></span></div>' +
+          '<div class="line"><b>' + money(p.price * it.qty) + '</b><button type="button" class="link" data-rm="' + esc(p.id) + '">Kaldır</button></div></div>';
+      }
+      h += '</div><div class="card"><div class="sum"><span>' + t.kinds + ' çeşit, ' + t.count + ' ürün</span><b>' + money(t.total) + '</b></div>' +
+        '<div class="hint">Fiyatlara KDV dahildir. Ödemeyi ürünleri teslim alırken yaparsınız.</div></div>';
+      if (!ORDER) {
+        h += '<div class="notice">İnternetten sipariş şu an alınmıyor. Bu sepeti telefonunuzdan kasada gösterebilirsiniz.</div>';
+      } else {
+        h += '<div class="card"><b style="font-size:17px">Sipariş bilgileri</b>' +
+          field('o-name', 'Sipariş adı', 'isteğe bağlı', CART.name, 'Örn. Okul listesi – Elif', 'Birden fazla siparişiniz karışmasın diye bir ad verin.', 60) +
+          field('o-customer', 'Adınız soyadınız', '', ME.customer, '', '', 60) +
+          field('o-phone', 'Telefon', 'isteğe bağlı', ME.phone, '05xx xxx xx xx', 'Siparişiniz hazır olunca size haber verebilmemiz için.', 20, 'tel') +
+          '<label class="fl">Not <small>(isteğe bağlı)</small><textarea id="o-note" rows="2" maxlength="500" placeholder="Örn. renk tercihi, teslim günü…">' +
+          esc(CART.note) + '</textarea></label>' +
+          '<div id="send-err"></div>' +
+          '<button type="button" class="big-btn" id="o-send">Siparişi gönder · ' + money(t.total) + '</button></div>';
+      }
+      h += '<button type="button" class="sec-btn" id="o-clear" style="background:none;color:#b91c1c">Sepeti boşalt</button>';
+      el.innerHTML = h;
+    }
+
+    function field(id, label, small, val, ph, hint, max, type) {
+      return '<label class="fl' + (formErr[id] ? ' bad' : '') + '">' + label + (small ? ' <small>(' + small + ')</small>' : '') +
+        '<input id="' + id + '" type="' + (type || 'text') + '" maxlength="' + max + '" value="' + esc(val) + '"' +
+        (ph ? ' placeholder="' + esc(ph) + '"' : '') + (id === 'o-customer' ? ' autocomplete="name"' : id === 'o-phone' ? ' autocomplete="tel"' : '') + '>' +
+        (formErr[id] ? '<div class="ferr">' + esc(formErr[id]) + '</div>' : hint ? '<div class="hint">' + esc(hint) + '</div>' : '') + '</label>';
+    }
+
+    // Yazılanlar sepetle birlikte saklanır (sayfa kapansa da kaybolmaz).
+    function readForm() {
+      if (!$('o-customer')) return;
+      CART.name = $('o-name').value;
+      CART.note = $('o-note').value;
+      ME.customer = $('o-customer').value;
+      ME.phone = $('o-phone').value;
+      store('dlk_me', ME);
+      saveCart();
+    }
+
+    // Düzeltilen alanın uyarısı yazarken kalkar.
+    $('v-cart').oninput = function (e) {
+      readForm();
+      var id = e.target.id, l = e.target.parentNode;
+      if (formErr[id] && l && l.className.indexOf('bad') >= 0) {
+        delete formErr[id];
+        l.className = 'fl';
+        var fe = l.querySelector('.ferr');
+        if (fe) l.removeChild(fe);
+      }
+    };
+    $('v-cart').onclick = function (e) {
+      var t = e.target, a;
+      if ((a = t.getAttribute('data-inc'))) { cartAdd(a, 1); readForm(); renderCart(); }
+      else if ((a = t.getAttribute('data-dec'))) { cartAdd(a, -1); readForm(); renderCart(); }
+      else if ((a = t.getAttribute('data-rm'))) { cartAdd(a, -cartQty(a) || -1); removeGone(a); readForm(); renderCart(); }
+      else if ((a = t.getAttribute('data-go'))) { if (a === 'scan') scanOpen(); else go(a); }
+      else if (t.id === 'o-clear') {
+        if (confirm('Sepetteki bütün ürünler çıkarılsın mı?')) { CART.items = []; CART.pending = ''; saveCart(); renderCart(); }
+      } else if (t.id === 'o-send') { readForm(); confirmOrder(); }
+    };
+
+    function removeGone(id) {
+      for (var i = 0; i < CART.items.length; i++) if (CART.items[i].id === id) { CART.items.splice(i, 1); saveCart(); return; }
+    }
+
+    function validate() {
+      formErr = {};
+      var c = ME.customer.replace(/^\s+|\s+$/g, ''), digits = ME.phone.replace(/\D/g, '');
+      if (c.length < 2) formErr['o-customer'] = 'Lütfen adınızı ve soyadınızı yazın.';
+      if (ME.phone.replace(/\s/g, '') && (digits.length < 10 || digits.length > 13)) formErr['o-phone'] = 'Telefon numarası eksik ya da hatalı görünüyor.';
+      return !formErr['o-customer'] && !formErr['o-phone'];
+    }
+
+    function confirmOrder() {
+      var t = cartTotals();
+      if (!t.kinds) return renderCart();
+      if (!validate()) {
+        renderCart();
+        var bad = document.querySelector('.fl.bad input');
+        if (bad) bad.focus();
+        return;
+      }
+      formErr = {};
+      sheet('<h3>Siparişi onaylıyor musunuz?</h3>' +
+        (CART.name ? '<div class="row"><span>Sipariş adı</span><b>' + esc(CART.name) + '</b></div>' : '') +
+        '<div class="row"><span>Ad soyad</span><b>' + esc(ME.customer) + '</b></div>' +
+        (ME.phone ? '<div class="row"><span>Telefon</span><b>' + esc(ME.phone) + '</b></div>' : '') +
+        '<div class="row"><span>' + t.kinds + ' çeşit, ' + t.count + ' ürün</span><b>' + money(t.total) + '</b></div>' +
+        '<div id="sheet-err"></div>' +
+        '<button type="button" class="big-btn" id="s-yes">Evet, siparişi gönder</button>' +
+        '<button type="button" class="sec-btn" id="s-no">Geri dön</button>');
+    }
+
+    function sheet(html) {
+      var s = $('sheet');
+      if (!s) {
+        s = document.createElement('div');
+        s.id = 'sheet';
+        document.body.appendChild(s);
+        s.onclick = function (e) {
+          if (e.target === s || e.target.id === 's-no') { if (!SENDING) closeSheet(); }
+          else if (e.target.id === 's-yes') submitOrder();
+        };
+      }
+      s.innerHTML = '<div class="box">' + html + '</div>';
+      s.className = '';
+    }
+    function closeSheet() { if ($('sheet')) $('sheet').className = 'hidden'; }
+
+    var SENDING = false;
+    var ID_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    function newId() {
+      var a = new Uint8Array(8), s = '';
+      (window.crypto || window.msCrypto).getRandomValues(a);
+      for (var i = 0; i < 8; i++) s += ID_CHARS.charAt(a[i] % 32);
+      return s;
+    }
+    function fmtId(id) { return id.slice(0, 4) + '-' + id.slice(4); }
+
+    function submitOrder() {
+      if (SENDING) return;
+      var l = cartLines(), items = [];
+      for (var i = 0; i < l.length; i++) {
+        if (!l[i].p) continue;
+        items.push({ id: l[i].p.id, name: l[i].p.name, unit: l[i].p.unit, price: l[i].p.price, qty: l[i].it.qty });
+      }
+      if (!items.length) { closeSheet(); return renderCart(); }
+      // Aynı sepet için numara saklanır: bağlantı koptuğunda "tekrar dene" aynı siparişi iki kez göndermez.
+      if (!CART.pending) { CART.pending = newId(); saveCart(); }
+      var order = {
+        id: CART.pending, name: CART.name.replace(/^\s+|\s+$/g, ''), customer: ME.customer.replace(/^\s+|\s+$/g, ''),
+        phone: ME.phone.replace(/^\s+|\s+$/g, ''), note: CART.note.replace(/^\s+|\s+$/g, ''), items: items,
+        total: cartTotals().total, createdAt: new Date().toISOString()
+      };
+      SENDING = true;
+      $('s-yes').disabled = true;
+      $('s-yes').textContent = 'Gönderiliyor…';
+      $('sheet-err').innerHTML = '';
+      sendOrder(order, function () {
+        SENDING = false;
+        MY_ORDERS.unshift(order);
+        if (MY_ORDERS.length > 50) MY_ORDERS.length = 50;
+        store('dlk_orders', MY_ORDERS);
+        CART = { items: [], name: '', note: '', pending: '' };
+        saveCart();
+        closeSheet();
+        renderCart(order);
+        refreshList();
+        window.scrollTo(0, 0);
+      }, function (msg) {
+        SENDING = false;
+        $('s-yes').disabled = false;
+        $('s-yes').textContent = 'Tekrar dene';
+        $('sheet-err').innerHTML = '<div class="notice err">' + esc(msg) + '</div>';
+      });
+    }
+
+    function sendOrder(order, ok, fail) {
+      var net = 'Sipariş gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.';
+      if (ORDER.local) {
+        return post('/api/orders', JSON.stringify(order), {}, function (st, txt) {
+          if (st === 200) return ok();
+          var m = null;
+          try { m = JSON.parse(txt).error; } catch (e) {}
+          fail(st ? m || 'Sipariş gönderilemedi (' + st + ').' : net);
+        });
+      }
+      if (!window.crypto || !window.crypto.subtle || !window.TextEncoder) {
+        return fail('Telefonunuzun tarayıcısı sipariş göndermeyi desteklemiyor. Lütfen tarayıcınızı güncelleyin ya da dükkânı arayın.');
+      }
+      seal(JSON.stringify(order)).then(function (body) {
+        var token = atob(ORDER.k).split('').reverse().join('');
+        post('https://api.github.com/repos/' + ORDER.repo + '/issues', JSON.stringify({ title: 'Sipariş ' + order.id, body: body }),
+          { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' }, function (st) {
+            if (st === 201) return ok();
+            fail(st ? 'Sipariş şu an alınamıyor (' + st + '). Lütfen biraz sonra tekrar deneyin ya da dükkânı arayın.' : net);
+          });
+      }, function () {
+        fail('Sipariş hazırlanırken bir sorun oluştu. Sayfayı yenileyip tekrar deneyin.');
+      });
+    }
+
+    function post(url, body, headers, done) {
+      var x = new XMLHttpRequest();
+      x.open('POST', url, true);
+      x.setRequestHeader('Content-Type', 'application/json');
+      for (var k in headers) x.setRequestHeader(k, headers[k]);
+      x.timeout = 30000;
+      x.onload = function () { done(x.status, x.responseText); };
+      x.onerror = x.ontimeout = function () { done(0, ''); };
+      x.send(body);
+    }
+
+    // Siparişi yalnız dükkânın açabileceği biçimde şifreler: AES-256-GCM ile içerik, RSA-OAEP ile AES anahtarı.
+    function b64(buf) {
+      var b = new Uint8Array(buf), s = '';
+      for (var i = 0; i < b.length; i += 8192) s += String.fromCharCode.apply(null, b.subarray(i, i + 8192));
+      return btoa(s);
+    }
+    function unb64(s) {
+      var bin = atob(s), a = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+      return a;
+    }
+    function seal(text) {
+      var sub = window.crypto.subtle, iv = window.crypto.getRandomValues(new Uint8Array(12)), aes, rsa;
+      return sub.importKey('spki', unb64(ORDER.pub), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']).then(function (k) {
+        rsa = k;
+        return sub.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
+      }).then(function (k) {
+        aes = k;
+        return sub.encrypt({ name: 'AES-GCM', iv: iv }, aes, new TextEncoder().encode(text));
+      }).then(function (data) {
+        return sub.exportKey('raw', aes).then(function (raw) {
+          return sub.encrypt({ name: 'RSA-OAEP' }, rsa, raw);
+        }).then(function (k) {
+          return ORDER_MARK + '\n' + btoa(JSON.stringify({ k: b64(k), iv: b64(iv), d: b64(data) }));
+        });
+      });
+    }
+
+    // ---- Siparişlerim ----
+    var OPEN_ORDER = '';
+    function renderOrders() {
+      var el = $('v-orders'), h = '<h1 class="vt">Siparişlerim</h1>';
+      if (!MY_ORDERS.length) {
+        el.innerHTML = h + '<div class="card blank"><b>Henüz siparişiniz yok</b>Sepetinize ürün ekleyip sipariş verdiğinizde burada görünür.' +
+          '<button type="button" class="big-btn" data-go="list">Ürünlere göz at</button></div>';
+        return;
+      }
+      for (var i = 0; i < MY_ORDERS.length; i++) {
+        var o = MY_ORDERS[i], st = STATUS && STATUS[o.id], open = OPEN_ORDER === o.id, n = 0;
+        for (var j = 0; j < o.items.length; j++) n += o.items[j].qty;
+        h += '<div class="card oc" data-oid="' + esc(o.id) + '"><div class="oc-head"><div><div class="oc-name">' + esc(o.name || 'Sipariş') + '</div>' +
+          '<div class="oc-meta">No ' + esc(fmtId(o.id)) + ' · ' + dateText(o.createdAt) + ' · ' + o.items.length + ' çeşit, ' + n + ' ürün</div></div>' +
+          '<div class="oc-total">' + money(o.total) + '</div></div>' +
+          '<span class="st ' + (st ? st[0] : '') + '">' + (st ? ST_TEXT[st[0]] || st[0] : STATUS ? 'Gönderildi · dükkânın görmesi bekleniyor' : 'Gönderildi') + '</span>';
+        if (open) {
+          h += '<div class="oc-items">';
+          for (j = 0; j < o.items.length; j++) {
+            h += '<div><span>' + o.items[j].qty + ' × ' + esc(o.items[j].name) + '</span><span>' + money(o.items[j].price * o.items[j].qty) + '</span></div>';
+          }
+          h += '</div>' + (o.note ? '<div class="hint">Not: ' + esc(o.note) + '</div>' : '') +
+            '<button type="button" class="sec-btn" data-again="' + esc(o.id) + '">Aynı ürünleri sepete ekle</button>';
+        }
+        h += '</div>';
+      }
+      el.innerHTML = h + '<p class="hint" style="text-align:center">Siparişleriniz yalnız bu telefonda saklanır. Durum birkaç dakikada bir güncellenir.</p>';
+    }
+
+    function dateText(iso) {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      var p = function (x) { return (x < 10 ? '0' : '') + x; };
+      return p(d.getDate()) + '.' + p(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+
+    $('v-orders').onclick = function (e) {
+      var t = e.target, a;
+      if ((a = t.getAttribute('data-go'))) return go(a);
+      if ((a = t.getAttribute('data-again'))) {
+        var o = null, added = 0, missing = 0;
+        for (var i = 0; i < MY_ORDERS.length; i++) if (MY_ORDERS[i].id === a) o = MY_ORDERS[i];
+        if (!o) return;
+        for (i = 0; i < o.items.length; i++) {
+          if (productById(o.items[i].id)) { cartAdd(o.items[i].id, o.items[i].qty); added++; } else missing++;
+        }
+        toast(added ? added + ' çeşit ürün sepete eklendi' : 'Bu ürünler artık satışta değil');
+        if (missing && added) setTimeout(function () { toast(missing + ' ürün artık satışta değil'); }, 1700);
+        return;
+      }
+      while (t && t !== this && !t.getAttribute('data-oid')) t = t.parentNode;
+      if (t && t !== this) { OPEN_ORDER = OPEN_ORDER === t.getAttribute('data-oid') ? '' : t.getAttribute('data-oid'); renderOrders(); }
+    };
+
+    function loadStatus() {
+      if (!MY_ORDERS.length) return;
+      var url = ORDER && ORDER.local ? '/api/order-status' : 'siparis-durum.json?t=' + new Date().getTime();
+      getJSON(url, function (d) { STATUS = d; if (VIEW === 'orders') renderOrders(); }, function () {});
+    }
+
+    updateBadge();
 
     // ---------- Kamerayla barkod okutma ----------
     // "Okut"a basınca tam ekran kamera açılır. Yeşil çerçevenin içine tutulan düz (EAN, UPC, Code 128…) ya da kare
@@ -254,7 +838,8 @@
       $('sc-res').onclick = function (e) {
         var a = e.target && e.target.getAttribute('data-act');
         if (a === 'again') scanOpen();
-        else if (a === 'list') scanClose();
+        else if (a === 'list') { scanClose(); go('list'); }
+        else if (a) resAct(a);
       };
     }
 
@@ -583,23 +1168,55 @@
 
     function showResult(r) {
       var box = $('sc-res'), p = r.product, h;
+      RES_P = p;
+      RQ = 1;
       if (p) {
         h = '<div class="res"><div class="r-cat">' + esc(p.category) + '</div>' +
           '<div class="r-name">' + esc(p.name) + '</div>' +
           '<div class="r-price">' + money(p.price) + '</div>' +
           '<div class="muted">' + esc(p.unit) + ' fiyatı · KDV dahil</div>' +
-          (p.barcode ? '<div class="r-code">' + esc(p.barcode) + '</div>' : '');
+          (p.barcode ? '<div class="r-code">' + esc(p.barcode) + '</div>' : '') +
+          '<div id="r-add">' + resAddHtml(false) + '</div>';
       } else {
         h = '<div class="res notfound"><div class="r-icon">?</div><div class="r-name">Ürün bulunamadı</div>' +
           '<p class="muted">Bu ürün listemizde kayıtlı değil. Fiyat bilgisi için lütfen kasaya sorun.</p>' +
-          '<div class="r-code">' + esc(r.code) + '</div>';
+          '<div class="r-code">' + esc(r.code) + '</div>' +
+          '<button type="button" class="r-btn" data-act="again">Başka ürün okut</button>' +
+          (CART.items.length ? '<button type="button" class="r-btn2" data-act="cart">Sepete git</button>' : '');
       }
-      h += '<button type="button" class="r-btn" data-act="again">Başka ürün okut</button>' +
-        '<button type="button" class="r-btn2" data-act="list">Fiyat listesine dön</button></div>';
+      h += '<button type="button" class="r-btn2" data-act="list">Fiyat listesine dön</button></div>';
       box.innerHTML = h;
       $('sc-cam').className = 'hidden';
       box.className = '';
       if (SC.stream) $('sc-video').pause();
+    }
+
+    // Okutulan ürünü sepete ekleme: adet seçilir, "Sepete ekle"; eklenince sepetteki adet görünür.
+    var RES_P = null, RQ = 1;
+    function resAddHtml(added) {
+      var p = RES_P, n = cartQty(p.id);
+      if (added) {
+        return '<div class="r-in">&#10003; Sepete eklendi · sepette ' + n + ' ' + esc(p.unit.toLocaleLowerCase ? p.unit.toLocaleLowerCase('tr') : p.unit) + '</div>' +
+          '<button type="button" class="r-btn" data-act="again">Başka ürün okut</button>' +
+          '<button type="button" class="r-btn2" data-act="cart">Sepete git</button>';
+      }
+      return '<div class="r-add"><span class="qty big"><button type="button" data-act="rq-" aria-label="Azalt">&minus;</button><b>' + RQ +
+        '</b><button type="button" data-act="rq+" aria-label="Artır">+</button></span>' +
+        '<button type="button" class="r-btn" data-act="add">Sepete ekle · ' + money(p.price * RQ) + '</button></div>' +
+        (n ? '<div class="hint">Sepetinizde bu üründen ' + n + ' tane var.</div>' : '') +
+        '<button type="button" class="r-btn2" data-act="again">Başka ürün okut</button>';
+    }
+    function resAct(a) {
+      if (a === 'rq-' || a === 'rq+') {
+        RQ = Math.max(1, Math.min(999, RQ + (a === 'rq+' ? 1 : -1)));
+        $('r-add').innerHTML = resAddHtml(false);
+      } else if (a === 'add' && RES_P) {
+        cartAdd(RES_P.id, RQ, true); // okutma ekranı kendi onayını gösterir
+        $('r-add').innerHTML = resAddHtml(true);
+      } else if (a === 'cart') {
+        scanClose();
+        go('cart');
+      }
     }
 
     $('scan-open').onclick = scanOpen;
