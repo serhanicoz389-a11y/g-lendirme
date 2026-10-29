@@ -614,6 +614,12 @@ server.on('error', async (e) => {
   try {
     const r = await fetch(`http://localhost:${PORT}/api/catalog`, { signal: AbortSignal.timeout(1500) });
     if (r.ok && (await r.json()).products) {
+      // Arka planda açık kalmış eski kopya (belki eski sürüm) kapatılır, yerine bu sürüm çalışır.
+      if (!retriedAfterStop && stopOldCopy(PORT)) {
+        retriedAfterStop = true;
+        console.log('  Açık kalan eski program kapatıldı, yenisi başlatılıyor...');
+        return setTimeout(() => server.listen(PORT), 1500);
+      }
       console.log(`\n  Program zaten açık (http://localhost:${PORT}/admin). Tarayıcıda açılıyor...`);
       console.log('  Bu pencereyi kapatabilirsiniz.\n');
       openBrowser(`http://localhost:${PORT}/admin`);
@@ -628,6 +634,22 @@ server.on('error', async (e) => {
   PORT += 1;
   server.listen(PORT);
 });
+
+// Windows'ta portu tutan eski Node sürecini bulup kapatır (yalnız bizim programımız olduğu anlaşıldıktan sonra çağrılır).
+let retriedAfterStop = false;
+function stopOldCopy(port) {
+  if (process.platform !== 'win32') return false;
+  try {
+    const out = require('child_process').execSync('netstat -ano -p tcp', { encoding: 'utf8' });
+    const pids = new Set();
+    for (const line of out.split(/\r?\n/)) {
+      const m = line.trim().split(/\s+/);
+      if (m.length >= 5 && /^tcp/i.test(m[0]) && /:0$/.test(m[2]) && m[1].endsWith(':' + port) && +m[4] !== process.pid) pids.add(m[4]);
+    }
+    for (const pid of pids) require('child_process').execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' });
+    return pids.size > 0;
+  } catch { return false; }
+}
 
 server.on('listening', onListening);
 server.listen(PORT);

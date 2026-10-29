@@ -62,6 +62,9 @@ echo.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0guvenlik-duvari.ps1"
 :baslat
 echo.
+echo  Guncellemeler kontrol ediliyor...
+if exist "%~dp0guncelle.ps1" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0guncelle.ps1"
+echo.
 echo  Program baslatiliyor, yonetim paneli tarayicida kendiliginden acilacak...
 "%NODE_EXE%" server.js
 echo.
