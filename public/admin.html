@@ -87,6 +87,18 @@
     .src { font-size: 12px; border-radius: 10px; padding: 1px 8px; background: #eef2ff; color: #3730a3; margin-left: 6px; }
     .poll { font-size: 13px; }
 
+    /* ---------- Excel yükleme önizlemesi ---------- */
+    .dlg { position: fixed; inset: 0; z-index: 60; background: rgba(15,17,23,.55); overflow-y: auto; padding: 5vh 16px; }
+    .dlg-box { background: #fff; max-width: 720px; margin: 0 auto; border-radius: var(--radius); padding: 20px 22px; }
+    .imp-sum { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .imp-sum div { background: #f6f7f9; border-radius: 10px; padding: 10px; text-align: center; font-size: 13px; color: var(--muted); }
+    .imp-sum b { display: block; font-size: 24px; color: var(--ink); }
+    .imp-sum .warn { background: #fff4e5; }
+    .imp-l { margin: 6px 0 0; padding-left: 20px; font-size: 14px; max-height: 220px; overflow-y: auto; }
+    .imp-l li { margin: 2px 0; }
+    .imp-prob { background: #fff8e1; border: 1px solid #f5d77a; border-radius: 10px; padding: 10px 12px; margin-top: 12px; font-size: 14px; }
+    .imp-del { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 12px; margin-top: 12px; }
+
     /* ---------- QR ---------- */
     .qr-layout { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(260px, 380px); gap: 20px; align-items: start; }
     @media (max-width: 760px) { .qr-layout { grid-template-columns: 1fr; } }
@@ -180,8 +192,8 @@
         <button class="btn" id="p-bulk">% Toplu Fiyat Değiştir</button>
         <button class="btn" id="p-print">🖨 Fiyat Listesi Yazdır</button>
         <button class="btn" id="p-labels" title="Listede görünen ürünler için karekod etiketi yazdırır">🏷 Karekod Etiketi Yazdır</button>
-        <a class="btn" id="p-export" href="#">⬇ Excel'e Aktar</a>
-        <label class="btn">⬆ Excel'den Yükle<input type="file" id="p-import" accept=".csv,text/csv" hidden></label>
+        <a class="btn" id="p-export" href="#" title="Bütün ürünleri Excel dosyası olarak indirir">⬇ Excel'e Aktar</a>
+        <label class="btn" title="Excel'e Aktar ile aldığınız dosyayı düzenleyip buradan yükleyin">⬆ Excel'den Yükle<input type="file" id="p-import" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" hidden></label>
       </div>
 
       <div class="panel hidden" id="bulk-panel">
@@ -438,6 +450,18 @@
     </section>
   </div>
 
+  <!-- Excel'den yükleme önizlemesi -->
+  <div class="dlg hidden" id="imp-dlg">
+    <div class="dlg-box">
+      <h3 style="margin:0 0 10px">Excel'den yükleme — kontrol edin</h3>
+      <div id="imp-body"></div>
+      <div class="bar" style="justify-content:flex-end; margin:16px 0 0">
+        <button class="btn" id="imp-cancel">Vazgeç</button>
+        <button class="btn primary" id="imp-apply">Uygula</button>
+      </div>
+    </div>
+  </div>
+
   <div id="print-area"></div>
   <div id="toast"></div>
 
@@ -677,25 +701,71 @@
       toast(`${count} ürünün fiyatı güncellendi`);
     });
 
+    // Excel'e aktar: gerçek .xlsx (barkod ve kod sütunları metin; Excel barkodu bozmaz)
     $('p-export').addEventListener('click', async (e) => {
       e.preventDefault();
-      const res = await fetch('/api/admin/export.csv', { headers: { 'X-Admin-Password': password } });
+      const res = await fetch('/api/admin/export.xlsx', { headers: { 'X-Admin-Password': password } });
+      if (!res.ok) { toast('Excel dosyası hazırlanamadı'); return; }
       const blob = await res.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `dilek-ofis-urunler-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `dilek-ofis-urunler-${new Date().toISOString().slice(0, 10)}.xlsx`;
       a.click();
-      URL.revokeObjectURL(a.href);
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     });
 
+    // Excel'den yükle: önce ne değişeceği gösterilir, "Uygula" ile kaydedilir.
+    let importToken = '';
     $('p-import').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       e.target.value = '';
       if (!file) return;
-      const text = await file.text();
-      const r = await api('/api/admin/import', { method: 'POST', body: text, headers: { 'Content-Type': 'text/csv' } });
-      await loadProducts();
-      toast(`${r.updated} ürün güncellendi, ${r.added} yeni ürün eklendi`);
+      if (/\.(numbers|ods)$/i.test(file.name)) { toast('Lütfen dosyayı Excel (.xlsx) olarak kaydedip yükleyin'); return; }
+      toast('Dosya okunuyor…');
+      let r;
+      try {
+        r = await api('/api/admin/import', { method: 'POST', body: await file.arrayBuffer(), headers: { 'Content-Type': 'application/octet-stream' } });
+      } catch { return; }
+      importToken = r.token;
+      showImport(r, file.name);
+    });
+
+    function showImport(r, fileName) {
+      const li = (arr, f) => arr.slice(0, 200).map(f).join('') + (arr.length > 200 ? `<li class="muted">… ve ${arr.length - 200} tane daha</li>` : '');
+      const sec = (title, arr, body, open) => arr.length ? `<details ${open ? 'open' : ''} style="margin-top:10px"><summary style="cursor:pointer"><b>${title}</b></summary><ul class="imp-l">${body}</ul></details>` : '';
+      const nothing = !r.added.length && !r.updated.length && !r.missing.length;
+      $('imp-body').innerHTML = `
+        <p class="muted" style="margin-top:0">${esc(fileName)} · ${r.total} ürün satırı okundu.</p>
+        <div class="imp-sum">
+          <div><b>${r.updated.length}</b>değişecek</div>
+          <div><b>${r.added.length}</b>yeni eklenecek</div>
+          <div><b>${r.unchanged}</b>aynı kalacak</div>
+          <div class="${r.missing.length ? 'warn' : ''}"><b>${r.missing.length}</b>dosyada yok</div>
+        </div>
+        ${r.problems.length ? `<div class="imp-prob"><b>⚠ ${r.problems.length} satırda sorun var</b> (diğer satırlar yine de uygulanır):<ul class="imp-l">${
+          li(r.problems, (p) => `<li>${p.line ? `<b>${p.line}. satır</b> ` : ''}${p.name ? esc(p.name) + ': ' : ''}${esc(p.msg)}</li>`)}</ul></div>` : ''}
+        ${sec('Değişecek ürünler', r.updated, li(r.updated, (u) => `<li><b>${esc(u.name)}</b> — ${u.changes.map(esc).join(' · ')}</li>`), r.updated.length <= 15)}
+        ${sec('Yeni eklenecek ürünler', r.added, li(r.added, (n) => `<li>${esc(n)}</li>`), r.added.length <= 15)}
+        ${r.missing.length ? `<div class="imp-del">
+          <label style="display:flex; gap:8px; align-items:flex-start"><input type="checkbox" id="imp-delete" checked style="margin-top:4px">
+          <span><b>Dosyada olmayan ${r.missing.length} ürünü sil</b><br><span class="muted" style="font-size:13px">Excel'de satırını sildiğiniz ürünler. Silmek istemiyorsanız işareti kaldırın.</span></span></label>
+          <ul class="imp-l">${li(r.missing, (n) => `<li>${esc(n)}</li>`)}</ul></div>` : ''}
+        ${nothing ? '<p><b>Dosyada değişiklik yok.</b></p>' : ''}`;
+      $('imp-apply').disabled = nothing;
+      $('imp-dlg').classList.remove('hidden');
+    }
+
+    $('imp-cancel').addEventListener('click', () => $('imp-dlg').classList.add('hidden'));
+    $('imp-apply').addEventListener('click', async () => {
+      const del = $('imp-delete') ? $('imp-delete').checked : false;
+      if (del && $('imp-delete') && !confirm('Dosyada olmayan ürünler silinecek. Emin misiniz?')) return;
+      $('imp-apply').disabled = true;
+      try {
+        const r = await api('/api/admin/import/apply', { method: 'POST', body: JSON.stringify({ token: importToken, deleteMissing: del }) });
+        $('imp-dlg').classList.add('hidden');
+        await loadProducts();
+        toast(`${r.updated} ürün değişti, ${r.added} ürün eklendi${r.deleted ? `, ${r.deleted} ürün silindi` : ''}`);
+      } finally { $('imp-apply').disabled = false; }
     });
 
     $('p-print').addEventListener('click', () => {

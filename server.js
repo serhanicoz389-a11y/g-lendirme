@@ -116,27 +116,175 @@ function cleanProduct(input, existing = {}) {
   return p;
 }
 
-// ---------- CSV (Excel ile uyumlu, noktalı virgül ayraçlı) ----------
+// ---------- Excel ile alışveriş (ek paket gerektirmez) ----------
+// Dışa aktarma gerçek Excel dosyasıdır (.xlsx): Kod ve Barkod sütunları "Metin" biçimlidir, böylece Excel uzun
+// barkodları 8,69724E+12 gibi bozmaz; yeni satıra yazılan barkod da metin kalır. Son sütundaki "No" ürünün
+// kimliğidir: ürünün adı ya da barkodu değişse bile aynı ürün olarak tanınır.
+// İçe aktarma .xlsx ve .csv (UTF-8 ya da Windows Türkçe) okur. Önce bir önizleme gösterilir: kaç ürün değişecek,
+// eklenecek, dosyada olmadığı için silinecek ve sorunlu satırlar; onaylanınca uygulanır.
 
-const CSV_HEADERS = ['Kod', 'Barkod', 'Ürün Adı', 'Kategori', 'Birim', 'Fiyat', 'Aktif'];
+const zlib = require('zlib');
 
-function toCsv(products) {
-  const esc = (v) => {
-    const s = String(v ?? '');
-    return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(buf) {
+  let c = 0xffffffff;
+  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function zipFiles(files) {
+  const parts = [], central = [];
+  let offset = 0;
+  for (const f of files) {
+    const name = Buffer.from(f.name, 'utf8'), data = Buffer.from(f.data, 'utf8'), packed = zlib.deflateRawSync(data);
+    const crc = crc32(data);
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(0x0800, 6); local.writeUInt16LE(8, 8);
+    local.writeUInt32LE(crc, 14); local.writeUInt32LE(packed.length, 18); local.writeUInt32LE(data.length, 22); local.writeUInt16LE(name.length, 26);
+    const cen = Buffer.alloc(46);
+    cen.writeUInt32LE(0x02014b50, 0); cen.writeUInt16LE(20, 4); cen.writeUInt16LE(20, 6); cen.writeUInt16LE(0x0800, 8); cen.writeUInt16LE(8, 10);
+    cen.writeUInt32LE(crc, 16); cen.writeUInt32LE(packed.length, 20); cen.writeUInt32LE(data.length, 24); cen.writeUInt16LE(name.length, 28);
+    cen.writeUInt32LE(offset, 42);
+    parts.push(local, name, packed);
+    central.push(cen, name);
+    offset += 30 + name.length + packed.length;
+  }
+  const size = central.reduce((s, b) => s + b.length, 0), end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(files.length, 8); end.writeUInt16LE(files.length, 10);
+  end.writeUInt32LE(size, 12); end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...parts, ...central, end]);
+}
+
+function unzip(buf) {
+  let e = buf.length - 22;
+  while (e >= 0 && buf.readUInt32LE(e) !== 0x06054b50) e--;
+  if (e < 0) throw new Error('Dosya açılamadı (bozuk ya da Excel dosyası değil).');
+  const count = buf.readUInt16LE(e + 10);
+  let p = buf.readUInt32LE(e + 16);
+  const out = new Map();
+  for (let i = 0; i < count; i++) {
+    if (buf.readUInt32LE(p) !== 0x02014b50) break;
+    const method = buf.readUInt16LE(p + 10), csize = buf.readUInt32LE(p + 20), nlen = buf.readUInt16LE(p + 28);
+    const xlen = buf.readUInt16LE(p + 30), clen = buf.readUInt16LE(p + 32), lo = buf.readUInt32LE(p + 42);
+    const name = buf.subarray(p + 46, p + 46 + nlen).toString('utf8');
+    const start = lo + 30 + buf.readUInt16LE(lo + 26) + buf.readUInt16LE(lo + 28), raw = buf.subarray(start, start + csize);
+    out.set(name.replace(/^\/+/, ''), method === 8 ? zlib.inflateRawSync(raw) : raw);
+    p += 46 + nlen + xlen + clen;
+  }
+  return out;
+}
+
+const xmlEsc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
+const xmlText = (s) => s.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (m, c) =>
+  c[0] === '#' ? String.fromCodePoint(c[1] === 'x' || c[1] === 'X' ? parseInt(c.slice(2), 16) : Number(c.slice(1)))
+    : { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }[c.toLowerCase()]);
+const colName = (i) => (i >= 26 ? colName(Math.floor(i / 26) - 1) : '') + String.fromCharCode(65 + (i % 26));
+const colIndex = (ref) => [...ref.replace(/\d+/g, '')].reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1;
+
+// cols: [{ title, width, kind: 'text' | 'money' | 'general' }]
+function makeXlsx(cols, rows) {
+  const style = { text: 2, money: 3, general: 0 };
+  const cell = (v, ci, ri) => {
+    const r = colName(ci) + ri, s = style[cols[ci].kind];
+    if (cols[ci].kind === 'money' && typeof v === 'number') return `<c r="${r}" s="${s}"><v>${v}</v></c>`;
+    return v === '' || v == null ? `<c r="${r}" s="${s}"/>` : `<c r="${r}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`;
   };
-  const rows = products.map((p) =>
-    [p.code, p.barcode, p.name, p.category, p.unit, String(p.price).replace('.', ','), p.active ? 'Evet' : 'Hayır']
-      .map(esc)
-      .join(';')
-  );
-  return '﻿' + [CSV_HEADERS.join(';'), ...rows].join('\r\n');
+  const last = colName(cols.length - 1);
+  const sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
+    '<cols>' + cols.map((c, i) => `<col min="${i + 1}" max="${i + 1}" width="${c.width}" style="${style[c.kind]}" customWidth="1"/>`).join('') + '</cols>' +
+    '<sheetData><row r="1">' + cols.map((c, i) => `<c r="${colName(i)}1" s="1" t="inlineStr"><is><t>${xmlEsc(c.title)}</t></is></c>`).join('') + '</row>' +
+    rows.map((row, ri) => `<row r="${ri + 2}">` + row.map((v, ci) => cell(v, ci, ri + 2)).join('') + '</row>').join('') +
+    `</sheetData><autoFilter ref="A1:${last}${rows.length + 1}"/></worksheet>`;
+  const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0.00"/></numFmts>' +
+    '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>' +
+    '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFFCE4EC"/></patternFill></fill></fills>' +
+    '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="49" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyNumberFormat="1"/>' +
+    '<xf numFmtId="49" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs>' +
+    '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  return zipFiles([
+    { name: '[Content_Types].xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>' },
+    { name: '_rels/.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
+    { name: 'xl/workbook.xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Ürünler" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">\'Ürünler\'!$A$1:$' + last + '$' + (rows.length + 1) + '</definedName></definedNames></workbook>' },
+    { name: 'xl/_rels/workbook.xml.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' },
+    { name: 'xl/worksheets/sheet1.xml', data: sheet },
+    { name: 'xl/styles.xml', data: styles },
+  ]);
+}
+
+// İlk sayfanın hücrelerini metin olarak okur (sayılar tam haneleriyle: 8697236130339).
+function readXlsx(buf) {
+  const files = unzip(buf), get = (n) => files.get(n) && files.get(n).toString('utf8');
+  const wb = get('xl/workbook.xml');
+  if (!wb) throw new Error('Bu bir Excel (.xlsx) dosyası değil.');
+  let sheetPath = 'xl/worksheets/sheet1.xml';
+  const first = /<sheet\b[^>]*\br:id="([^"]+)"/.exec(wb), rels = get('xl/_rels/workbook.xml.rels') || '';
+  if (first) {
+    const rel = new RegExp(`<Relationship\\b[^>]*\\bId="${first[1]}"[^>]*>`).exec(rels), target = rel && /Target="([^"]+)"/.exec(rel[0]);
+    if (target) sheetPath = target[1].startsWith('/') ? target[1].slice(1) : 'xl/' + target[1].replace(/^\.\//, '');
+  }
+  const shared = [];
+  for (const si of (get('xl/sharedStrings.xml') || '').match(/<si>[\s\S]*?<\/si>/g) || []) {
+    shared.push(xmlText((si.match(/<t\b[^>]*>[\s\S]*?<\/t>/g) || []).map((t) => t.replace(/<[^>]+>/g, '')).join('')));
+  }
+  const xml = get(sheetPath);
+  if (!xml) throw new Error('Excel dosyasında sayfa bulunamadı.');
+  const rows = [];
+  for (const rm of xml.matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/g)) {
+    const rn = /\br="(\d+)"/.exec(rm[1]), row = [];
+    for (const cm of rm[2].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
+      const ref = /\br="([A-Z]+\d+)"/.exec(cm[1]), t = (/\bt="(\w+)"/.exec(cm[1]) || [])[1], body = cm[2] || '';
+      const v = /<v>([\s\S]*?)<\/v>/.exec(body);
+      let val = '';
+      if (t === 's') val = v ? shared[Number(v[1])] ?? '' : '';
+      else if (t === 'inlineStr') val = xmlText((body.match(/<t\b[^>]*>[\s\S]*?<\/t>/g) || []).map((x) => x.replace(/<[^>]+>/g, '')).join(''));
+      else if (t === 'str') val = v ? xmlText(v[1]) : '';
+      else if (t === 'b') val = v && v[1] === '1' ? 'DOĞRU' : 'YANLIŞ';
+      else if (t === 'e') val = '';
+      else if (v) {
+        const n = Number(v[1]);
+        val = Number.isFinite(n) && Number.isInteger(n) && Math.abs(n) < 1e21 ? n.toFixed(0) : Number.isFinite(n) ? String(Math.round(n * 1e6) / 1e6) : v[1];
+      }
+      row[ref ? colIndex(ref[1]) : row.length] = val;
+    }
+    rows[rn ? Number(rn[1]) - 1 : rows.length] = Array.from(row, (x) => x ?? '');
+  }
+  return Array.from(rows, (r) => r || []);
+}
+
+// CSV: UTF-8 değilse Windows Türkçe (1254) kabul edilir (Excel'in "CSV (virgülle ayrılmış)" kaydı böyledir).
+const CP1254 = { 0xd0: 'Ğ', 0xdd: 'İ', 0xde: 'Ş', 0xf0: 'ğ', 0xfd: 'ı', 0xfe: 'ş', 0x80: '€', 0x8a: 'Š', 0x9a: 'š', 0x8c: 'Œ', 0x9c: 'œ', 0x9f: 'Ÿ' };
+function decodeText(buf) {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buf);
+  } catch {
+    let s = '';
+    for (const b of buf) s += CP1254[b] || String.fromCharCode(b);
+    return s;
+  }
 }
 
 function parseCsv(text) {
   text = text.replace(/^﻿/, '');
   const firstLine = text.split(/\r?\n/, 1)[0];
-  const sep = firstLine.split(';').length >= firstLine.split(',').length ? ';' : ',';
+  const sep = firstLine.split(';').length >= firstLine.split(',').length ? ';' : (firstLine.includes('\t') ? '\t' : ',');
   const rows = [];
   let row = [], field = '', quoted = false;
   for (let i = 0; i < text.length; i++) {
@@ -153,44 +301,171 @@ function parseCsv(text) {
     } else field += c;
   }
   if (field || row.length) { row.push(field); rows.push(row); }
-  return rows.filter((r) => r.some((f) => f.trim() !== ''));
+  return rows;
 }
 
-function importCsv(text) {
-  const rows = parseCsv(text);
-  if (rows.length < 2) throw new Error('Dosyada ürün satırı bulunamadı.');
-  const header = rows[0].map((h) => h.trim().toLowerCase());
-  const col = (...names) => header.findIndex((h) => names.some((n) => h.startsWith(n)));
-  const iCode = col('kod'), iBarcode = col('barkod'), iName = col('ürün', 'urun', 'ad'), iCat = col('kategori');
-  const iUnit = col('birim'), iPrice = col('fiyat'), iActive = col('aktif');
-  if (iName < 0 || iPrice < 0) throw new Error('"Ürün Adı" ve "Fiyat" sütunları bulunmalı.');
-
-  const products = loadProducts();
-  let added = 0, updated = 0;
-  for (const r of rows.slice(1)) {
-    const name = (r[iName] || '').trim();
-    if (!name) continue;
-    const code = iCode >= 0 ? (r[iCode] || '').trim() : '';
-    const barcode = iBarcode >= 0 ? (r[iBarcode] || '').replace(/\s+/g, '') : '';
-    // Fiyat "1.250,50" veya "1250.50" biçiminde olabilir.
-    let priceText = (r[iPrice] || '0').replace(/[^\d.,]/g, '');
-    if (priceText.includes(',')) priceText = priceText.replace(/\./g, '').replace(',', '.');
-    const input = { name, code, price: priceText };
-    if (iBarcode >= 0) input.barcode = barcode;
-    if (iCat >= 0) input.category = r[iCat] || '';
-    if (iUnit >= 0) input.unit = r[iUnit] || '';
-    if (iActive >= 0) input.active = !/^(hayır|hayir|0|false|pasif)$/i.test((r[iActive] || '').trim());
-
-    // Eşleştirme sırası: barkod, ürün kodu, ürün adı
-    const match =
-      (barcode && products.find((p) => p.barcode === barcode)) ||
-      (code && products.find((p) => p.code === code)) ||
-      (!code && products.find((p) => p.name.toLocaleLowerCase('tr') === name.toLocaleLowerCase('tr')));
-    if (match) { Object.assign(match, cleanProduct(input, match)); updated++; }
-    else { products.push(cleanProduct(input, { id: crypto.randomUUID() })); added++; }
+function readSheet(buf) {
+  if (buf.length > 4 && buf.readUInt32LE(0) === 0x04034b50) return readXlsx(buf);
+  if (buf.length > 8 && buf.readUInt32LE(0) === 0xe011cfd0) {
+    throw new Error('Bu eski Excel biçimi (.xls). Excel\'de "Farklı Kaydet" → "Excel Çalışma Kitabı (.xlsx)" seçip o dosyayı yükleyin.');
   }
-  saveProducts(products);
-  return { added, updated };
+  return parseCsv(decodeText(buf));
+}
+
+const EXCEL_COLS = [
+  { title: 'Kod', width: 10, kind: 'text' },
+  { title: 'Barkod', width: 17, kind: 'text' },
+  { title: 'Ürün Adı', width: 40, kind: 'general' },
+  { title: 'Kategori', width: 20, kind: 'general' },
+  { title: 'Birim', width: 9, kind: 'general' },
+  { title: 'Fiyat', width: 11, kind: 'money' },
+  { title: 'Satışta', width: 9, kind: 'general' },
+  { title: 'No (değiştirmeyin)', width: 38, kind: 'text' },
+];
+
+function exportXlsx(products) {
+  const cats = categoryList(products);
+  const list = [...products].sort((a, b) => cats.indexOf(a.category) - cats.indexOf(b.category) || a.name.localeCompare(b.name, 'tr'));
+  return makeXlsx(EXCEL_COLS, list.map((p) => [p.code, p.barcode, p.name, p.category, p.unit, p.price, p.active ? 'Evet' : 'Hayır', p.id]));
+}
+
+const trLower = (s) => String(s || '').toLocaleLowerCase('tr').trim();
+
+// Fiyat: "1.250,50", "1250,5", "1250.50", "₺ 45", "45 TL" … → sayı; anlaşılamazsa null.
+function parsePrice(raw) {
+  let t = String(raw ?? '').replace(/[^\d.,-]/g, '');
+  if (!t) return null;
+  if (t.includes(',') && t.includes('.')) t = t.lastIndexOf(',') > t.lastIndexOf('.') ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+  else if (t.includes(',')) t = t.replace(',', '.');
+  else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, ''); // 1.250 → 1250
+  const n = Number(t);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null;
+}
+
+// Dosyayı mevcut ürünlerle karşılaştırıp ne olacağını hesaplar; hiçbir şeyi kaydetmez.
+function planImport(rows, products) {
+  const problems = [];
+  let h = rows.findIndex((r, i) => i < 10 && r.some((c) => /^(ürün|urun)/i.test(String(c).trim())) && r.some((c) => /^fiyat/i.test(String(c).trim())));
+  if (h < 0) throw new Error('Dosyada "Ürün Adı" ve "Fiyat" başlıklı sütunlar bulunamadı. Programdan "Excel\'e Aktar" ile aldığınız dosyayı kullanın.');
+  const header = rows[h].map((x) => trLower(x));
+  const col = (re) => header.findIndex((x) => re.test(x));
+  const C = {
+    id: col(/^(no|id)\b/), code: col(/^kod/), barcode: col(/^barkod/), name: col(/^(ürün|urun)/), cat: col(/^kategori/),
+    unit: col(/^birim/), price: col(/^fiyat/), active: col(/^(satışta|satista|aktif|durum)/),
+  };
+  const byId = new Map(products.map((p) => [p.id, p]));
+  const used = new Set(), seenBarcode = new Map(), out = [];
+  for (let i = h + 1; i < rows.length; i++) {
+    const r = rows[i] || [], line = i + 1;
+    const g = (k) => (C[k] >= 0 ? String(r[C[k]] ?? '').trim() : undefined);
+    if (!r.some((c) => String(c).trim())) continue;
+    const name = g('name');
+    if (!name) { problems.push({ line, msg: 'Ürün adı boş; satır atlandı.' }); continue; }
+    const input = { name };
+    let barcode = g('barcode');
+    if (barcode !== undefined) {
+      barcode = barcode.replace(/^'/, '').replace(/\s+/g, '');
+      if (/^\d+\.0+$/.test(barcode)) barcode = barcode.replace(/\.0+$/, '');
+      if (/^[\d.,]+e\+?\d+$/i.test(barcode)) {
+        problems.push({ line, name, msg: `Barkod Excel'de bozulmuş (${barcode}); bu ürünün barkodu değiştirilmedi. Barkod sütununu "Metin" yapıp barkodu yeniden yazın.` });
+        barcode = undefined;
+      } else if (barcode && seenBarcode.has(barcode)) {
+        problems.push({ line, name, msg: `Barkod ${barcode} dosyada ${seenBarcode.get(barcode)}. satırda da var; bu satırın barkodu yok sayıldı.` });
+        barcode = undefined;
+      }
+      if (barcode) seenBarcode.set(barcode, line);
+      if (barcode !== undefined) input.barcode = barcode;
+    }
+    if (g('code') !== undefined) input.code = g('code');
+    if (g('cat') !== undefined) input.category = g('cat') || 'Diğer';
+    if (g('unit') !== undefined) input.unit = g('unit') || 'Adet';
+    const rawPrice = g('price');
+    const price = parsePrice(rawPrice);
+    if (price === null) problems.push({ line, name, msg: rawPrice ? `Fiyat anlaşılamadı (${rawPrice}); fiyat değiştirilmedi.` : 'Fiyat boş; fiyat değiştirilmedi.' });
+    else input.price = price;
+    if (g('active') !== undefined && g('active') !== '') input.active = !/^(hayır|hayir|h|0|false|yanlış|yanlis|pasif|yok)$/i.test(g('active'));
+
+    // Eşleştirme: No, barkod, kod, ad (aynı ürün iki satırla eşleşmez)
+    const free = (p) => p && !used.has(p.id);
+    const id = g('id');
+    let match = (id && free(byId.get(id)) && byId.get(id)) ||
+      (barcode && products.find((p) => free(p) && p.barcode === barcode)) ||
+      (input.code && products.find((p) => free(p) && p.code && p.code === input.code)) ||
+      products.find((p) => free(p) && trLower(p.name) === trLower(name));
+    if (id && byId.get(id) && used.has(id)) problems.push({ line, name, msg: 'Bu satırdaki No başka bir satırda da var; yeni ürün olarak eklenecek.' });
+    if (match) used.add(match.id);
+    out.push({ line, match, input });
+  }
+  // Barkod başka (dosyada olmayan ama silinmeyecek) bir üründe kayıtlıysa çakışma
+  return { rows: out, problems, missing: products.filter((p) => !used.has(p.id)) };
+}
+
+function applyPlan(plan, products, deleteMissing) {
+  const sameish = (a, b) => ['name', 'code', 'barcode', 'category', 'unit', 'price', 'active'].every((k) => a[k] === b[k]);
+  let next = deleteMissing ? products.filter((p) => !plan.missing.includes(p)) : [...products];
+  const added = [], updated = [], unchanged = [];
+  for (const r of plan.rows) {
+    if (r.match) {
+      const cand = cleanProduct(r.input, r.match);
+      if (sameish(cand, r.match)) { unchanged.push(r.match); continue; }
+      const changes = ['name', 'code', 'barcode', 'category', 'unit', 'price', 'active'].filter((k) => cand[k] !== r.match[k]);
+      next = next.map((p) => (p.id === r.match.id ? cand : p));
+      updated.push({ before: r.match, after: cand, changes });
+    } else {
+      const p = cleanProduct(r.input, { id: crypto.randomUUID() });
+      next.push(p);
+      added.push(p);
+    }
+  }
+  // Aynı barkod iki üründe kalmasın: dosyadan geleni koru, diğerinin barkodunu sil.
+  const problems = [];
+  const fromFile = new Set([...added, ...updated.map((u) => u.after)].map((p) => p.id));
+  const owner = new Map();
+  for (const p of next) {
+    if (!p.barcode) continue;
+    const o = owner.get(p.barcode);
+    if (!o) { owner.set(p.barcode, p); continue; }
+    const loser = fromFile.has(p.id) && !fromFile.has(o.id) ? o : p;
+    problems.push({ name: loser.name, msg: `Barkod ${p.barcode} "${(loser === p ? o : p).name}" ürününde de var; "${loser.name}" ürününden kaldırıldı.` });
+    if (loser === o) owner.set(p.barcode, p);
+    next = next.map((x) => (x.id === loser.id ? { ...x, barcode: '' } : x));
+  }
+  return { next, added, updated, unchanged, deleted: deleteMissing ? plan.missing : [], problems };
+}
+
+// Yüklenen dosya önizlemeden sonra "Uygula"ya basılana kadar bellekte bekler (10 dk).
+const pendingImports = new Map();
+
+function importPreview(buf) {
+  const rows = readSheet(buf);
+  const products = loadProducts();
+  const plan = planImport(rows, products);
+  if (!plan.rows.length) throw new Error('Dosyada ürün satırı bulunamadı.');
+  const r = applyPlan(plan, products, true);
+  const token = crypto.randomBytes(12).toString('hex');
+  for (const [k, v] of pendingImports) if (Date.now() - v.at > 600000) pendingImports.delete(k);
+  pendingImports.set(token, { rows, at: Date.now() });
+  const FIELD = { name: 'ad', code: 'kod', barcode: 'barkod', category: 'kategori', unit: 'birim', price: 'fiyat', active: 'satışta' };
+  const show = (k, v) => (k === 'price' ? String(v).replace('.', ',') + ' ₺' : k === 'active' ? (v ? 'evet' : 'hayır') : v === '' ? '(boş)' : v);
+  return {
+    token,
+    total: plan.rows.length,
+    added: r.added.map((p) => p.name),
+    updated: r.updated.map((u) => ({ name: u.after.name, changes: u.changes.map((k) => `${FIELD[k]}: ${show(k, u.before[k])} → ${show(k, u.after[k])}`) })),
+    unchanged: r.unchanged.length,
+    missing: plan.missing.map((p) => p.name),
+    problems: [...plan.problems, ...r.problems],
+  };
+}
+
+function importApply(token, deleteMissing) {
+  const pending = pendingImports.get(token);
+  if (!pending) throw new Error('Önizlemenin süresi doldu. Dosyayı yeniden seçin.');
+  const products = loadProducts();
+  const r = applyPlan(planImport(pending.rows, products), products, deleteMissing);
+  saveProducts(r.next);
+  pendingImports.delete(token);
+  return { added: r.added.length, updated: r.updated.length, deleted: r.deleted.length };
 }
 
 // ---------- İnternette yayınlama ----------
@@ -553,6 +828,10 @@ function send(res, status, body, type = 'application/json; charset=utf-8', extra
 }
 
 function readBody(req, limit = 5 * 1024 * 1024) {
+  return readRaw(req, limit).then((b) => b.toString('utf8'));
+}
+
+function readRaw(req, limit = 5 * 1024 * 1024) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
@@ -561,7 +840,7 @@ function readBody(req, limit = 5 * 1024 * 1024) {
       if (size > limit) { reject(new Error('Gönderilen veri çok büyük.')); req.destroy(); }
       else chunks.push(c);
     });
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
 }
@@ -804,16 +1083,26 @@ async function handleApi(req, res, url) {
 
   if (route === 'info' && method === 'GET') return send(res, 200, { lanUrls: lanAddresses(), port: PORT });
 
-  if (route === 'export.csv' && method === 'GET') {
+  if ((route === 'export.xlsx' || route === 'export.csv') && method === 'GET') {
     const date = new Date().toISOString().slice(0, 10);
-    return send(res, 200, toCsv(loadProducts()), 'text/csv; charset=utf-8', {
-      'Content-Disposition': `attachment; filename="dilek-ofis-urunler-${date}.csv"`,
+    return send(res, 200, exportXlsx(loadProducts()), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', {
+      'Content-Disposition': `attachment; filename="dilek-ofis-urunler-${date}.xlsx"`,
     });
   }
 
+  // Excel/CSV yükleme: önce önizleme, onaydan sonra uygulama
   if (route === 'import' && method === 'POST') {
     try {
-      return send(res, 200, importCsv(await readBody(req)));
+      return send(res, 200, importPreview(await readRaw(req, 20 * 1024 * 1024)));
+    } catch (e) {
+      return send(res, 400, { error: e.message });
+    }
+  }
+
+  if (route === 'import/apply' && method === 'POST') {
+    const { token, deleteMissing } = await readJsonBody(req);
+    try {
+      return send(res, 200, importApply(String(token || ''), Boolean(deleteMissing)));
     } catch (e) {
       return send(res, 400, { error: e.message });
     }

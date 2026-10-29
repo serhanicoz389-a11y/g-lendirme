@@ -20,7 +20,11 @@ değiştirirsiniz; değişiklik müşterinin ekranına anında yansır.
 - **Barkod (isteğe bağlı):** Ürüne barkod yazılabilir veya USB barkod okuyucuyla okutulabilir. Arama kutusunda okutulan barkod kayıtlı değilse yeni ürün olarak eklemeyi önerir. Aynı barkod iki ürüne verilemez.
 - **Kategoriler:** Yeni kategori ekleme, adını düzeltme, sırasını değiştirme, silme (içindeki ürünler başka kategoriye taşınır).
 - **Toplu fiyat değiştirme:** Tüm ürünlere veya bir kategoriye % zam/indirim, istenen yuvarlamayla (50 kuruş, tam lira…).
-- **Excel'e aktar / Excel'den yükle:** Listeyi indirip Excel'de düzenleyip geri yükleyebilirsiniz.
+- **Excel'e aktar / Excel'den yükle:** "Excel'e Aktar" gerçek bir Excel dosyası (.xlsx) indirir. Excel'de fiyatları,
+  adları, kategorileri, barkodları değiştirin, yeni satır ekleyin ya da satırı silin, kaydedip "Excel'den Yükle" ile
+  geri yükleyin. Uygulanmadan önce ne değişeceği gösterilir (değişen, yeni, silinecek ürünler ve sorunlu satırlar).
+  Barkod sütunu metindir, Excel barkodu bozmaz. Son sütundaki "No"yu değiştirmeyin: ürünün adı değişse bile aynı ürün
+  olarak tanınmasını sağlar. .csv dosyaları da okunur.
 - **Karekod etiketi yazdır:** Listede görünen ürünler için A4'e etiket basar. Müşteri bu etiketi telefonunun kendi kamerasıyla okuttuğunda ürünün güncel fiyatı açılır (uygulama içinde "Okut" demeye gerek yok). Etikette fiyat yazmaz, böylece fiyat değişince yeniden basmak gerekmez.
 - **Fiyat listesi yazdır:** Satıştaki tüm ürünlerin A4 fiyat listesi.
 - **Siparişler:** Müşterilerin sitede onayladığı siparişler gelir (yeni siparişte ses ve sekmede sayı). Durumu tek
