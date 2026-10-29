@@ -9,7 +9,7 @@ değiştirirsiniz; değişiklik müşterinin ekranına anında yansır.
 **Müşteri sayfası** (QR ile açılır, telefona uygun)
 - Kategorilere ayrılmış ürün ve fiyat listesi
 - Ürün arama (ad veya barkod), kategori filtreleme
-- **Barkod / karekod okutma:** "Okut" düğmesine basıp kamerayı ürünün koduna tutmak yeterli. Düz barkodlar (EAN-13, EAN-8, UPC, Code 128, Code 39…) ve kare kodlar (QR, DataMatrix, Aztec, PDF417) kendiliğinden algılanır; kamera açık kaldıkça her yeni ürünün fiyatı ekranda güncellenir
+- **Barkod / karekod okutma:** "Okut" düğmesine basınca tam ekran kamera açılır; ürünün kodunu yeşil çerçevenin içine tutmak yeterli. Düz barkodlar (EAN-13, EAN-8, UPC, Code 128, Code 39…) ve kare kodlar (QR, DataMatrix, Aztec, PDF417, GS1) kendiliğinden okunur, ürün fiyatıyla açılır; listede olmayan ürün için "Ürün bulunamadı" yazar. Okuyucu ZXing'dir (`public/vendor/zxing-*`, MIT/Apache); bulanık görüntüde keskinleştirerek tekrar dener
 - Satıştan kaldırdığınız ürünler görünmez
 
 **Yönetim paneli** (`/admin`, şifreli)

@@ -191,7 +191,10 @@ function importCsv(text) {
 // Müşteri sayfası ve güncel katalog GitHub'daki "main" dalına gönderilir;
 // GitHub Pages bu dalı https://<kullanıcı>.github.io/<depo>/ adresinde yayınlar.
 
-const PUBLISH_FILES = ['index.html', 'style.css', 'vendor/html5-qrcode.min.js', 'vendor/html5-qrcode.LICENSE'];
+const PUBLISH_FILES = ['index.html', 'style.css', 'vendor/zxing-reader.js', 'vendor/zxing-LICENSE.txt'];
+// İkili (metin olmayan) dosyalar: GitHub'a ayrı "blob" olarak yüklenir, zaten oradaysa tekrar gönderilmez.
+const PUBLISH_BINARY = ['vendor/zxing_reader.wasm'];
+const gitBlobSha = (buf) => crypto.createHash('sha1').update(`blob ${buf.length}\0`).update(buf).digest('hex');
 const AUTO_PUBLISH_DELAY = 15000;
 let publishTimer = null;
 let publishing = null;
@@ -206,13 +209,17 @@ function catalogData(all = loadProducts(), settings = loadSettings()) {
 
 function siteFiles() {
   const files = PUBLISH_FILES.map((f) => ({ path: f, content: fs.readFileSync(path.join(PUBLIC_DIR, f), 'utf8') }));
+  for (const f of PUBLISH_BINARY) {
+    const data = fs.readFileSync(path.join(PUBLIC_DIR, f));
+    files.push({ path: f, data, sha: gitBlobSha(data) });
+  }
   files.push({ path: 'catalog.json', content: JSON.stringify(catalogData()) });
   files.push({ path: '.nojekyll', content: '' });
   files.push({ path: '_headers', content: '/\n  Cache-Control: no-cache\n/index.html\n  Cache-Control: no-cache\n/catalog.json\n  Cache-Control: no-cache\n' });
   return files;
 }
 
-const hashFiles = (files) => crypto.createHash('sha256').update(JSON.stringify(files)).digest('hex');
+const hashFiles = (files) => crypto.createHash('sha256').update(JSON.stringify(files.map((f) => [f.path, f.sha || f.content]))).digest('hex');
 
 function publishConfigured(s = loadSettings()) {
   return Boolean(s.githubRepo && s.githubToken);
@@ -263,8 +270,17 @@ async function doPublish() {
   const ref = await github('GET', `/repos/${repo}/git/ref/heads/${encodeURIComponent(branch)}`, token);
   const parent = ref.status === 200 ? ref.data.object.sha : null;
 
+  for (const f of files.filter((x) => x.data)) {
+    const have = await github('GET', `/repos/${repo}/git/blobs/${f.sha}`, token);
+    if (have.status === 200) continue;
+    const blob = await github('POST', `/repos/${repo}/git/blobs`, token, { content: f.data.toString('base64'), encoding: 'base64' });
+    if (blob.status === 403 || blob.status === 404) throw new Error('GitHub anahtarının "Contents: Read and write" izni yok.');
+    if (blob.status >= 400) throw new Error(`GitHub hatası (${blob.status}): ${blob.data.message || ''}`);
+  }
   const tree = await github('POST', `/repos/${repo}/git/trees`, token, {
-    tree: files.map((f) => ({ path: f.path, mode: '100644', type: 'blob', content: f.content })),
+    tree: files.map((f) => (f.data
+      ? { path: f.path, mode: '100644', type: 'blob', sha: f.sha }
+      : { path: f.path, mode: '100644', type: 'blob', content: f.content })),
   });
   if (tree.status === 403 || tree.status === 404) throw new Error('GitHub anahtarının "Contents: Read and write" izni yok.');
   if (tree.status >= 400) throw new Error(`GitHub hatası (${tree.status}): ${tree.data.message || ''}`);
@@ -381,6 +397,7 @@ const MIME = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
+  '.wasm': 'application/wasm',
 };
 
 function serveStatic(res, urlPath) {

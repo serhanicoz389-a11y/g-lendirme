@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dilek Ofis - Fiyat Listesi</title>
   <!-- iPhone Safari ile uyum için sayfa bilerek sade tutuldu: dış CSS, yapışkan çubuk, SVG, emoji,
-       yeni JavaScript sözdizimi kullanılmaz; okutma penceresi yalnızca "Okut"a basılınca oluşturulur. -->
+       yeni JavaScript sözdizimi kullanılmaz; okutma ekranı yalnızca "Okut"a basılınca oluşturulur. -->
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Helvetica, Arial, sans-serif; color: #1f2430; background: #f6f7f9; line-height: 1.45; }
@@ -31,22 +31,34 @@
     .item .unit { font-size: 13px; color: #6b7280; }
     .item .price { margin-left: 12px; font-weight: bold; font-size: 17px; color: #8e0f42; white-space: nowrap; }
     .empty { text-align: center; color: #6b7280; padding: 40px 0; }
-    .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 20; background: rgba(15, 17, 23, .75); overflow-y: auto; }
-    .sheet { background: #fff; max-width: 520px; margin: 40px auto 0; border-radius: 18px; padding: 18px 16px 24px; }
-    .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .sheet-head h3 { margin: 0; }
-    .close { border: 0; background: #f6f7f9; width: 40px; height: 40px; border-radius: 20px; font-size: 18px; }
-    #reader { width: 100%; border-radius: 12px; overflow: hidden; background: #000; min-height: 220px; }
-    #reader video { width: 100% !important; }
-    .scan-hint { text-align: center; color: #6b7280; font-size: 14px; margin: 10px 0; }
-    .photo-btn { display: block; text-align: center; width: 100%; padding: 12px; border: 1px dashed #c2185b; border-radius: 10px; color: #c2185b; font-weight: bold; background: #fff; }
-    .result { text-align: center; padding: 10px 0 4px; }
-    .r-cat { color: #6b7280; font-size: 14px; }
-    .r-name { font-size: 22px; font-weight: bold; margin: 4px 0; }
-    .r-price { font-size: 40px; font-weight: bold; color: #8e0f42; margin: 6px 0; }
-    .r-code { font-size: 13px; color: #6b7280; letter-spacing: 1px; }
-    .notfound .r-name { color: #b91c1c; font-size: 18px; }
-    .again { margin-top: 16px; border: 0; border-radius: 8px; background: #c2185b; color: #fff; padding: 10px 16px; }
+    #scan { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 30; background: #000; }
+    #sc-cam { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; }
+    #sc-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+    #sc-box { position: absolute; left: 50%; top: 42%; width: 78vw; max-width: 380px; height: 52vw; max-height: 254px;
+      transform: translate(-50%, -50%); border: 3px solid #2ee66b; border-radius: 14px;
+      box-shadow: 0 0 0 2000px rgba(0, 0, 0, .45); transition: border-color .15s, background .15s; }
+    #sc-box.ok { border-color: #fff; background: rgba(46, 230, 107, .35); }
+    #sc-line { position: absolute; left: 6%; right: 6%; top: 50%; height: 2px; margin-top: -1px; background: #ff2d2d;
+      box-shadow: 0 0 8px #ff2d2d; }
+    #sc-box.ok #sc-line { display: none; }
+    #sc-hint { position: absolute; left: 16px; right: 16px; top: 14%; margin: 0; text-align: center; color: #fff;
+      font-size: 16px; font-weight: bold; text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
+    #sc-bar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; padding: 16px 12px 28px; }
+    #sc-bar button { margin: 0 5px; border: 0; border-radius: 24px; padding: 13px 20px; font-weight: bold; color: #fff;
+      background: rgba(255, 255, 255, .22); }
+    #sc-bar #sc-cancel { background: #fff; color: #1f2430; }
+    #sc-res { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #fff; overflow-y: auto; }
+    .res { max-width: 520px; margin: 0 auto; padding: 48px 20px 30px; text-align: center; }
+    .r-cat { color: #6b7280; font-size: 15px; }
+    .r-name { font-size: 24px; font-weight: bold; margin: 6px 0; }
+    .r-price { font-size: 48px; font-weight: bold; color: #8e0f42; margin: 14px 0 4px; }
+    .r-code { font-size: 13px; color: #6b7280; letter-spacing: 1px; margin-top: 12px; }
+    .r-icon { width: 64px; height: 64px; margin: 0 auto 10px; border-radius: 32px; background: #fde8e8; color: #b91c1c;
+      font-size: 36px; font-weight: bold; line-height: 64px; }
+    .notfound .r-name { color: #b91c1c; }
+    .r-btn, .r-btn2 { display: block; width: 100%; margin-top: 12px; border: 0; border-radius: 10px; padding: 15px; font-weight: bold; }
+    .r-btn { margin-top: 30px; background: #c2185b; color: #fff; font-size: 18px; }
+    .r-btn2 { background: #f1f2f5; color: #1f2430; }
     footer { text-align: center; color: #6b7280; font-size: 13px; padding: 10px 16px 30px; }
     footer a { color: #c2185b; }
     #err { color: #b91c1c; font-size: 12px; padding: 0 16px 20px; word-break: break-all; }
@@ -205,180 +217,401 @@
     });
 
     // ---------- Kamerayla barkod okutma ----------
-    // Kamera açıkken düz (EAN, UPC, Code128…) ve kare (QR, DataMatrix…) kodları kendiliğinden algılar;
-    // her yeni kodda sonuç kameranın altında güncellenir, düğmeye basmak gerekmez.
-    // Canlı kamera yalnızca HTTPS (veya localhost) üzerinde açılabilir; yerel ağda (http://192.168…)
-    // tarayıcılar kamerayı engeller. O durumda "fotoğraf çekerek okut" yöntemi kullanılır.
-    var scanner = null, libLoading = null, lastCode = '', lastTime = 0;
+    // "Okut"a basınca tam ekran kamera açılır. Yeşil çerçevenin içine tutulan düz (EAN, UPC, Code 128…) ya da kare
+    // (QR, DataMatrix…) kod kendiliğinden okunur, kamera durur ve ürün fiyatıyla gösterilir.
+    // Okuyucu ZXing (vendor/zxing-reader.js + zxing_reader.wasm); telefon kendi okuyucusunu (BarcodeDetector)
+    // sunuyorsa önce o kullanılır. Canlı kamera yalnızca HTTPS (veya localhost) üzerinde açılır; yerel ağda
+    // (http://192.168…) tarayıcı kamerayı engeller, o zaman "Fotoğraf çekerek okut" kullanılır.
+    var SC = { stream: null, run: false, busy: false, timer: 0, idle: 0, lastText: '', lastCount: 0, native: null };
+    var ZX_FORMATS = ['EAN13', 'EAN8', 'UPCA', 'UPCE', 'Code128', 'Code39', 'Code93', 'Codabar', 'ITF', 'DataBar',
+      'QRCode', 'DataMatrix', 'Aztec', 'PDF417'];
+    var NATIVE_FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'code_93', 'codabar', 'itf',
+      'qr_code', 'data_matrix', 'aztec', 'pdf417'];
+    // Sağlama haneli kodlar (EAN/UPC, QR…) ilk net okumada kabul edilir; diğerleri ve keskinleştirilerek okunanlar
+    // yanlış okumaya karşı art arda iki kez aynı okunmalı.
+    var SAFE_FORMAT = /^(EAN|UPC|ean|upc|QR|qr|Data|data|Aztec|aztec|PDF|pdf)/;
+    var zxLoading = null;
 
-    // Okutma penceresi sayfa açılışında değil, ilk kez "Okut"a basılınca oluşturulur.
-    function ensureModal() {
-      if ($('scan-modal')) return;
-      var m = document.createElement('div');
-      m.id = 'scan-modal';
-      m.className = 'modal hidden';
-      m.innerHTML = '<div class="sheet">' +
-        '<div class="sheet-head"><h3 id="scan-title">Barkod / karekod okut</h3><button type="button" class="close" id="scan-close">X</button></div>' +
-        '<div id="scan-area"><div id="reader"></div>' +
-        '<p class="scan-hint" id="scan-hint">Kamerayı ürünün barkoduna veya karekoduna tutun.</p>' +
-        '<button type="button" class="photo-btn" id="scan-photo-btn">Fotoğraf çekerek okut</button>' +
-        '<input type="file" id="scan-photo" accept="image/*" class="hidden"></div>' +
-        '<div id="scan-result" class="hidden"></div></div>';
-      document.body.appendChild(m);
-      $('scan-close').onclick = closeScanner;
-      m.onclick = function (e) { if (e.target === m) closeScanner(); };
-      $('scan-result').onclick = function (e) { if (e.target && e.target.getAttribute('data-again') !== null) openScanner(); };
-      $('scan-photo-btn').onclick = function () { $('scan-photo').click(); };
-      $('scan-photo').onchange = onPhoto;
+    function scanBuild() {
+      if ($('scan')) return;
+      var d = document.createElement('div');
+      d.id = 'scan';
+      d.className = 'hidden';
+      d.innerHTML =
+        '<div id="sc-cam"><video id="sc-video" playsinline muted autoplay></video>' +
+          '<div id="sc-box"><i id="sc-line"></i></div>' +
+          '<p id="sc-hint">Barkodu veya karekodu yeşil çerçevenin içine tutun</p>' +
+          '<div id="sc-bar"><button type="button" id="sc-cancel">Vazgeç</button>' +
+          '<button type="button" id="sc-torch" class="hidden">Fener</button>' +
+          '<button type="button" id="sc-photo-btn">Fotoğrafla</button></div></div>' +
+        '<div id="sc-res" class="hidden"></div>' +
+        '<input type="file" id="sc-photo" accept="image/*" class="hidden">';
+      document.body.appendChild(d);
+      $('sc-cancel').onclick = scanClose;
+      $('sc-photo-btn').onclick = function () { $('sc-photo').click(); };
+      $('sc-photo').onchange = onPhoto;
+      $('sc-torch').onclick = toggleTorch;
+      $('sc-res').onclick = function (e) {
+        var a = e.target && e.target.getAttribute('data-act');
+        if (a === 'again') scanOpen();
+        else if (a === 'list') scanClose();
+      };
     }
 
-    function loadScannerLib() {
-      if (window.Html5Qrcode) return Promise.resolve();
-      if (!libLoading) libLoading = new Promise(function (resolve, reject) {
+    // Okuyucu kütüphanesi ilk "Okut"ta yüklenir (yaklaşık 1 MB, sonra tarayıcı önbelleğinden gelir).
+    function zxLoad() {
+      if (zxLoading) return zxLoading;
+      zxLoading = new Promise(function (resolve, reject) {
         var s = document.createElement('script');
-        s.src = 'vendor/html5-qrcode.min.js';
-        s.onload = resolve;
-        s.onerror = function () { libLoading = null; reject(new Error('Okuyucu yüklenemedi')); };
+        s.src = 'vendor/zxing-reader.js';
+        s.onload = function () {
+          try {
+            window.ZXingWASM.prepareZXingModule({
+              overrides: { locateFile: function (p) { return new URL('vendor/' + p, location.href).href; } },
+              fireImmediately: true
+            }).then(function () { resolve(); }, fail);
+          } catch (e) { fail(e); }
+        };
+        s.onerror = fail;
+        function fail(e) { zxLoading = null; reject(e || new Error('Okuyucu yüklenemedi')); }
         document.head.appendChild(s);
       });
-      return libLoading;
+      return zxLoading;
     }
 
-    function getScanner() {
-      if (scanner) return scanner;
-      var F = window.Html5QrcodeSupportedFormats;
-      scanner = new window.Html5Qrcode('reader', {
-        verbose: false,
-        formatsToSupport: [
-          // Düz barkodlar
-          F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.CODE_128, F.CODE_39, F.CODE_93, F.CODABAR, F.ITF,
-          // Kare (2 boyutlu) kodlar
-          F.QR_CODE, F.DATA_MATRIX, F.AZTEC, F.PDF_417
-        ],
-        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+    // Telefonun kendi okuyucusu (Android Chrome); iPhone Safari'de yok, orada ZXing çalışır.
+    function nativeDetector() {
+      if (SC.native !== null) return Promise.resolve(SC.native);
+      SC.native = false;
+      if (!window.BarcodeDetector || !window.BarcodeDetector.getSupportedFormats) return Promise.resolve(false);
+      return window.BarcodeDetector.getSupportedFormats().then(function (f) {
+        var use = NATIVE_FORMATS.filter(function (x) { return f.indexOf(x) >= 0; });
+        if (f.indexOf('ean_13') >= 0 && f.indexOf('qr_code') >= 0) SC.native = new window.BarcodeDetector({ formats: use });
+        return SC.native;
+      }, function () { return false; });
+    }
+
+    // Önce görüntünün kendisi, okunamazsa keskinleştirilmiş hâli denenir (odak tam oturmamış, titreyen elde
+    // bulanık kalan barkodlar böyle okunur). Keskinleştirilmiş okuma "kesin" sayılmaz, ikinci kez görülmesi beklenir.
+    function decode(img) {
+      return nativeDetector().then(function (nd) {
+        if (nd) return nd.detect(img).then(function (r) {
+          return r.length ? { text: r[0].rawValue, format: r[0].format, sure: true } : null;
+        }, function () { return zxChain(img); });
+        return zxChain(img);
       });
-      return scanner;
+    }
+
+    function zxChain(img) {
+      return zxDecode(img).then(function (r) {
+        if (r) { r.sure = true; return r; }
+        return zxDecode(sharpen(img, 1)).then(function (r1) {
+          return r1 || zxDecode(sharpen(img, 2));
+        });
+      });
+    }
+
+    function zxDecode(src) {
+      return zxLoad().then(function () {
+        return window.ZXingWASM.readBarcodes(src, { formats: ZX_FORMATS, tryHarder: true, maxNumberOfSymbols: 1 });
+      }).then(function (r) {
+        for (var i = 0; i < r.length; i++) if (r[i].isValid && r[i].text) return { text: r[i].text, format: r[i].format };
+        return null;
+      });
+    }
+
+    // Gri tonlu keskinleştirme (merkez ağırlıklı Laplace); a: kuvvet.
+    function sharpen(d, a) {
+      var w = d.width, h = d.height, s = d.data, n = w * h, g = new Float32Array(n), o = new ImageData(w, h), q = o.data, i, x, y, v;
+      for (i = 0; i < n; i++) g[i] = 0.3 * s[4 * i] + 0.59 * s[4 * i + 1] + 0.11 * s[4 * i + 2];
+      for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+        i = y * w + x;
+        v = g[i] * (1 + 4 * a) - a * ((x > 0 ? g[i - 1] : g[i]) + (x < w - 1 ? g[i + 1] : g[i]) +
+          (y > 0 ? g[i - w] : g[i]) + (y < h - 1 ? g[i + w] : g[i]));
+        v = v < 0 ? 0 : v > 255 ? 255 : v;
+        q[4 * i] = q[4 * i + 1] = q[4 * i + 2] = v;
+        q[4 * i + 3] = 255;
+      }
+      return o;
     }
 
     function canLiveScan() {
       return !!(window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     }
 
-    function stopScanner() {
-      if (scanner && scanner.isScanning) return scanner.stop().then(null, function () {});
-      return Promise.resolve();
-    }
-
-    // Okunan metinden ürünü bul: doğrudan barkod ya da ürün QR etiketindeki bağlantı (?b=… / ?u=…)
-    function findBy(key, val) {
-      for (var i = 0; i < products.length; i++) if (products[i][key] && String(products[i][key]) === val) return products[i];
-      return null;
-    }
-
-    function findProduct(text) {
-      var code = String(text).replace(/^\s+|\s+$/g, '');
-      var m = /[?&](b|u)=([^&#]+)/.exec(code);
-      if (/^https?:\/\//.test(code) && m) {
-        var v = decodeURIComponent(m[2].replace(/\+/g, ' '));
-        return m[1] === 'b' ? { code: v, product: findBy('barcode', v) } : { code: '', product: findBy('id', v) };
-      }
-      return { code: code, product: findBy('barcode', code) };
-    }
-
-    function showResult(r, live) {
-      var box = $('scan-result'), p = r.product;
-      box.className = '';
-      var again = live ? '' : '<button type="button" class="again" data-again="1">Başka ürün okut</button>';
-      if (p) {
-        $('scan-title').textContent = 'Ürün bulundu';
-        box.innerHTML = '<div class="result"><div class="r-cat">' + esc(p.category) + '</div>' +
-          '<div class="r-name">' + esc(p.name) + '</div>' +
-          '<div class="r-price">' + money(p.price) + '</div>' +
-          '<div class="muted">' + esc(p.unit) + ' fiyatı</div>' +
-          (r.code ? '<div class="r-code">' + esc(r.code) + '</div>' : '') + again + '</div>';
-      } else {
-        $('scan-title').textContent = 'Ürün bulunamadı';
-        box.innerHTML = '<div class="result notfound"><div class="r-name">Bu kod listemizde kayıtlı değil.</div>' +
-          '<p class="muted">Fiyat bilgisi için lütfen kasaya sorun.</p>' +
-          '<div class="r-code">' + esc(r.code) + '</div>' + again + '</div>';
-      }
-    }
-
-    function onLiveScanned(text) {
-      // Kamera aynı kodu saniyede birçok kez görür; aynı kodu 2 saniye içinde tekrar gösterme.
-      var now = new Date().getTime();
-      if (text === lastCode && now - lastTime < 2000) return;
-      lastCode = text; lastTime = now;
-      if (navigator.vibrate) navigator.vibrate(60);
-      showResult(findProduct(text), true);
-      $('scan-hint').textContent = 'Başka bir ürün okutmak için kamerayı o ürünün koduna tutun.';
-    }
-
-    function startLive() {
+    function scanOpen() {
+      scanBuild();
+      $('scan').className = '';
+      $('sc-cam').className = '';
+      $('sc-res').className = 'hidden';
+      $('sc-box').className = '';
+      SC.lastText = ''; SC.lastCount = 0;
+      document.body.style.overflow = 'hidden';
+      clearTimeout(SC.idle);
+      zxLoad().then(null, function () {}); // kamera izni sorulurken okuyucu da yüklensin
       if (!canLiveScan()) {
-        $('reader').className = 'hidden';
-        $('scan-hint').textContent = 'Aşağıdaki düğmeye basıp ürünün barkodunun veya karekodunun fotoğrafını çekin.';
+        hint('Bu bağlantıda canlı kamera açılamıyor. "Fotoğrafla" düğmesine basıp kodun fotoğrafını çekin.');
         return;
       }
-      $('reader').className = '';
-      $('scan-hint').textContent = 'Kamerayı ürünün barkoduna veya karekoduna tutun, kendiliğinden okunur.';
-      return getScanner().start({ facingMode: 'environment' }, {
-        fps: 12,
-        // Hem düz hem kare kodlar sığsın diye geniş, kareye yakın bir okuma alanı
-        qrbox: function (w, h) {
-          var side = Math.min(w, h);
-          return { width: Math.round(Math.min(w * 0.9, side * 1.2)), height: Math.round(side * 0.7) };
+      hint('Barkodu veya karekodu yeşil çerçevenin içine tutun');
+      camStart().then(function () {
+        if ($('sc-cam').className === 'hidden') return;
+        SC.run = true;
+        loop();
+      }, function (e) {
+        var denied = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
+        hint(denied
+          ? 'Kamera izni verilmedi. Ayarlar > Safari > Kamera bölümünden izin verip sayfayı yenileyin ya da "Fotoğrafla" ile okutun.'
+          : 'Kamera açılamadı. "Fotoğrafla" düğmesiyle kodun fotoğrafını çekebilirsiniz.');
+      });
+    }
+
+    function hint(t) { $('sc-hint').textContent = t; }
+
+    // Kamera açık kalır (sonuç ekranındayken de); "Başka ürün okut" tekrar izin sormadan hemen açılır.
+    function camStart() {
+      var v = $('sc-video');
+      if (SC.stream && SC.stream.active) return v.play().then(null, function () {});
+      return navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+      }).then(function (st) {
+        SC.stream = st;
+        v.muted = true; // iPhone'da sessiz ve sayfa içinde oynatılmazsa görüntü gelmez
+        v.setAttribute('playsinline', '');
+        v.srcObject = st;
+        var tr = st.getVideoTracks()[0], cap = tr && tr.getCapabilities ? tr.getCapabilities() : {};
+        $('sc-torch').className = cap.torch ? '' : 'hidden';
+        if (cap.focusMode && cap.focusMode.indexOf('continuous') >= 0) {
+          tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).then(null, function () {});
         }
-      }, onLiveScanned, function () {}).then(null, function () {
-        $('reader').className = 'hidden';
-        $('scan-hint').textContent = 'Kamera açılamadı. Fotoğraf çekerek okutabilirsiniz.';
+        return v.play().then(null, function () {});
       });
     }
 
-    function openScanner() {
-      ensureModal();
-      lastCode = '';
-      $('scan-modal').className = 'modal';
-      $('scan-area').className = '';
-      $('scan-result').className = 'hidden';
-      $('scan-title').textContent = 'Barkod / karekod okut';
-      stopScanner().then(loadScannerLib).then(startLive).then(null, function () {
-        $('scan-hint').textContent = 'Okuyucu yüklenemedi. Sayfayı yenileyip tekrar deneyin.';
+    function camStop() {
+      SC.run = false;
+      clearTimeout(SC.timer);
+      if (SC.stream) {
+        SC.stream.getTracks().forEach(function (t) { t.stop(); });
+        SC.stream = null;
+      }
+      var v = $('sc-video');
+      if (v) v.srcObject = null;
+    }
+
+    function toggleTorch() {
+      var tr = SC.stream && SC.stream.getVideoTracks()[0];
+      if (!tr) return;
+      SC.torch = !SC.torch;
+      tr.applyConstraints({ advanced: [{ torch: SC.torch }] }).then(null, function () {});
+      $('sc-torch').textContent = SC.torch ? 'Feneri kapat' : 'Fener';
+    }
+
+    // Yalnız çerçevenin (biraz da çevresinin) görüntüsü okunur: hızlı olur, yandaki başka ürünün kodu okunmaz.
+    var cropCanvas = null;
+    function grabBox() {
+      var v = $('sc-video'), vw = v.videoWidth, vh = v.videoHeight;
+      if (!vw || !vh) return null;
+      var cw = v.clientWidth, ch = v.clientHeight, k = Math.max(cw / vw, ch / vh),
+        ox = (cw - vw * k) / 2, oy = (ch - vh * k) / 2,
+        b = $('sc-box').getBoundingClientRect(), r = v.getBoundingClientRect(),
+        mx = b.width * 0.15, my = b.height * 0.25,
+        sx = Math.max(0, (b.left - r.left - mx - ox) / k), sy = Math.max(0, (b.top - r.top - my - oy) / k),
+        sw = Math.min(vw - sx, (b.width + 2 * mx) / k), sh = Math.min(vh - sy, (b.height + 2 * my) / k);
+      var sc = Math.min(1, 1280 / sw), w = Math.round(sw * sc), h = Math.round(sh * sc);
+      if (!cropCanvas) cropCanvas = document.createElement('canvas');
+      cropCanvas.width = w; cropCanvas.height = h;
+      var x = cropCanvas.getContext('2d', { willReadFrequently: true });
+      x.drawImage(v, sx, sy, sw, sh, 0, 0, w, h);
+      return x.getImageData(0, 0, w, h);
+    }
+
+    function loop() {
+      if (!SC.run) return;
+      var img = SC.busy ? null : grabBox();
+      if (!img) { SC.timer = setTimeout(loop, 80); return; }
+      SC.busy = true;
+      decode(img).then(function (r) {
+        SC.busy = false;
+        if (!SC.run) return;
+        if (r && accept(r)) return found(r.text);
+        SC.timer = setTimeout(loop, 40);
+      }, function () {
+        SC.busy = false;
+        if (!SC.run) return;
+        if (!zxLoading) hint('Okuyucu yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
+        SC.timer = setTimeout(loop, 400);
       });
     }
 
-    function closeScanner() {
-      stopScanner();
-      $('scan-modal').className = 'modal hidden';
+    function accept(r) {
+      if (r.sure && SAFE_FORMAT.test(r.format)) return true;
+      if (r.text === SC.lastText) SC.lastCount++;
+      else { SC.lastText = r.text; SC.lastCount = 1; }
+      return SC.lastCount >= 2;
+    }
+
+    function found(text) {
+      SC.run = false;
+      $('sc-box').className = 'ok';
+      beep();
+      if (navigator.vibrate) navigator.vibrate(60);
+      setTimeout(function () { showResult(findProduct(text)); }, 180);
+      // Kamera bir süre açık kalır; müşteri başka ürün okutmazsa kapanır.
+      clearTimeout(SC.idle);
+      SC.idle = setTimeout(camStop, 60000);
+    }
+
+    var audioCtx = null;
+    function beep() {
+      try {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        audioCtx = audioCtx || new AC();
+        var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.frequency.value = 1800;
+        g.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + 0.13);
+      } catch (e) {}
+    }
+
+    function scanClose() {
+      camStop();
+      clearTimeout(SC.idle);
+      if ($('scan')) $('scan').className = 'hidden';
+      document.body.style.overflow = '';
       if (location.search && window.history.replaceState) history.replaceState(null, '', location.pathname);
     }
 
     function onPhoto(e) {
       var file = e.target.files && e.target.files[0];
+      e.target.value = '';
       if (!file) return;
-      $('scan-hint').textContent = 'Okunuyor…';
-      stopScanner().then(loadScannerLib).then(function () {
-        return getScanner().scanFile(file, false);
-      }).then(function (text) {
-        e.target.value = '';
-        $('scan-area').className = 'hidden';
-        showResult(findProduct(text), false);
+      SC.run = false;
+      clearTimeout(SC.timer);
+      hint('Fotoğraf okunuyor…');
+      photoImage(file).then(function (img) {
+        return zxChain(img).then(function (r) {
+          // Bütün fotoğrafta bulunamazsa ortası büyütülerek bir daha denenir (uzaktan çekilen küçük barkod).
+          return r || zxChain(centerCrop(img));
+        });
+      }).then(function (r) {
+        if (r) return found(r.text);
+        hint('Fotoğrafta kod bulunamadı. Koda yakından, net ve ışıklı bir fotoğraf çekin.');
+        resumeLive();
       }, function () {
-        e.target.value = '';
-        $('scan-hint').textContent = 'Kod okunamadı. Koda daha yakından, net ve ışıklı bir fotoğraf çekin.';
+        hint('Fotoğraf okunamadı. Tekrar deneyin.');
+        resumeLive();
       });
     }
 
-    $('scan-open').onclick = openScanner;
+    // Fotoğraf okunamazsa canlı kamera (açıksa) okumaya devam eder.
+    function resumeLive() {
+      if (SC.run || !SC.stream || !SC.stream.active || $('sc-cam').className === 'hidden') return;
+      SC.run = true;
+      loop();
+    }
+
+    // Fotoğrafı en fazla 1600 piksele küçültüp piksellerini alır (iPhone fotoğrafları 4000 pikseli aşar).
+    function photoImage(file) {
+      return new Promise(function (resolve, reject) {
+        var u = URL.createObjectURL(file), im = new Image();
+        im.onload = function () {
+          var k = Math.min(1, 1600 / Math.max(im.naturalWidth, im.naturalHeight)),
+            w = Math.round(im.naturalWidth * k), h = Math.round(im.naturalHeight * k),
+            c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          var x = c.getContext('2d');
+          x.drawImage(im, 0, 0, w, h);
+          URL.revokeObjectURL(u);
+          resolve(x.getImageData(0, 0, w, h));
+        };
+        im.onerror = function () { URL.revokeObjectURL(u); reject(new Error('resim')); };
+        im.src = u;
+      });
+    }
+
+    function centerCrop(d) {
+      var c = document.createElement('canvas'), w = d.width, h = d.height;
+      c.width = w; c.height = h;
+      c.getContext('2d').putImageData(d, 0, 0);
+      var o = document.createElement('canvas');
+      o.width = w; o.height = h;
+      var x = o.getContext('2d');
+      x.drawImage(c, w * 0.2, h * 0.25, w * 0.6, h * 0.5, 0, 0, w, h);
+      return x.getImageData(0, 0, w, h);
+    }
+
+    // Barkodları karşılaştırmak için: yalnız rakamlar, baştaki sıfırlar atılır (UPC-A 12 hane = EAN-13 başı 0;
+    // GS1 karekodlarındaki (01) GTIN-14 de aynı ürüne denk gelir).
+    function codeKey(s) {
+      s = String(s || '').replace(/\s+/g, '');
+      if (/^\d+$/.test(s)) return s.replace(/^0+/, '');
+      return s.toUpperCase();
+    }
+
+    function findBy(key, val) {
+      for (var i = 0; i < products.length; i++) if (products[i][key] && String(products[i][key]) === val) return products[i];
+      return null;
+    }
+
+    function findByCode(code) {
+      var k = codeKey(code);
+      if (!k) return null;
+      for (var i = 0; i < products.length; i++) if (products[i].barcode && codeKey(products[i].barcode) === k) return products[i];
+      return null;
+    }
+
+    // Okunan metinden ürünü bul: doğrudan barkod, GS1 kodu ya da ürün QR etiketindeki bağlantı (?b=… / ?u=…)
+    function findProduct(text) {
+      var code = String(text).replace(/^\s+|\s+$/g, '');
+      var m = /[?&](b|u)=([^&#]+)/.exec(code);
+      if (/^https?:\/\//.test(code) && m) {
+        var v = decodeURIComponent(m[2].replace(/\+/g, ' '));
+        return m[1] === 'b' ? { code: v, product: findByCode(v) } : { code: '', product: findBy('id', v) };
+      }
+      var p = findByCode(code);
+      if (!p) {
+        var g = /^(?:\]\w\d)?\(?01\)?(\d{14})/.exec(code.replace(/\x1d/g, '')); // GS1: (01)GTIN
+        if (g) p = findByCode(g[1]);
+      }
+      return { code: code, product: p };
+    }
+
+    function showResult(r) {
+      var box = $('sc-res'), p = r.product, h;
+      if (p) {
+        h = '<div class="res"><div class="r-cat">' + esc(p.category) + '</div>' +
+          '<div class="r-name">' + esc(p.name) + '</div>' +
+          '<div class="r-price">' + money(p.price) + '</div>' +
+          '<div class="muted">' + esc(p.unit) + ' fiyatı · KDV dahil</div>' +
+          (p.barcode ? '<div class="r-code">' + esc(p.barcode) + '</div>' : '');
+      } else {
+        h = '<div class="res notfound"><div class="r-icon">?</div><div class="r-name">Ürün bulunamadı</div>' +
+          '<p class="muted">Bu ürün listemizde kayıtlı değil. Fiyat bilgisi için lütfen kasaya sorun.</p>' +
+          '<div class="r-code">' + esc(r.code) + '</div>';
+      }
+      h += '<button type="button" class="r-btn" data-act="again">Başka ürün okut</button>' +
+        '<button type="button" class="r-btn2" data-act="list">Fiyat listesine dön</button></div>';
+      box.innerHTML = h;
+      $('sc-cam').className = 'hidden';
+      box.className = '';
+      if (SC.stream) $('sc-video').pause();
+    }
+
+    $('scan-open').onclick = scanOpen;
 
     // Ürün QR etiketi telefonun kendi kamerasıyla okutulunca sayfa ?b=… veya ?u=… ile açılır:
     // ürünü doğrudan göster.
     function openFromLink() {
       if (!/[?&](b|u)=/.test(location.search)) return;
-      ensureModal();
-      $('scan-modal').className = 'modal';
-      $('scan-area').className = 'hidden';
-      showResult(findProduct(location.href), false);
+      scanBuild();
+      $('scan').className = '';
+      document.body.style.overflow = 'hidden';
+      showResult(findProduct(location.href));
     }
   </script>
 </body>
