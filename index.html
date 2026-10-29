@@ -4,52 +4,59 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dilek Ofis - Fiyat Listesi</title>
-  <!-- iPhone Safari ile uyum için sayfa bilerek sade tutuldu: dış CSS, yapışkan çubuk, SVG, emoji,
-       yeni JavaScript sözdizimi kullanılmaz; okutma penceresi yalnızca "Okut"a basılınca oluşturulur. -->
+  <link rel="stylesheet" href="/style.css">
   <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: Helvetica, Arial, sans-serif; color: #1f2430; background: #f6f7f9; line-height: 1.45; }
-    button, input { font-family: inherit; font-size: 16px; color: inherit; }
-    .hidden { display: none; }
-    .muted { color: #6b7280; }
-    header { background: #c2185b; color: #fff; padding: 22px 16px 18px; text-align: center; }
-    header h1 { margin: 0; font-size: 28px; }
-    header p { margin: 4px 0 0; }
-    .toolbar { background: #f6f7f9; padding: 12px 16px 8px; border-bottom: 1px solid #e5e7eb; }
-    .search-row { display: flex; }
-    .search-row input { flex: 1; min-width: 0; border: 1px solid #e5e7eb; border-radius: 8px; padding: 11px 14px; background: #fff; -webkit-appearance: none; }
-    .scan-btn { margin-left: 8px; border: 0; border-radius: 8px; background: #c2185b; color: #fff; padding: 0 16px; font-weight: bold; }
-    .chips { white-space: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 10px 0 4px; }
-    .chip { display: inline-block; margin-right: 8px; border: 1px solid #e5e7eb; background: #fff; border-radius: 20px; padding: 6px 14px; font-size: 14px; }
-    .chip.active { background: #c2185b; border-color: #c2185b; color: #fff; }
+    header {
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      color: #fff; padding: 22px 16px 18px; text-align: center;
+    }
+    header h1 { margin: 0; font-size: 28px; letter-spacing: .5px; }
+    header p { margin: 4px 0 0; opacity: .9; }
+    .toolbar {
+      position: sticky; top: 0; z-index: 5; background: var(--bg);
+      padding: 12px 16px 8px; border-bottom: 1px solid var(--line);
+    }
+    .toolbar input { font-size: 16px; padding: 11px 14px; }
+    .chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 4px; scrollbar-width: none; }
+    .chip {
+      border: 1px solid var(--line); background: #fff; border-radius: 999px;
+      padding: 6px 14px; white-space: nowrap; cursor: pointer; font-size: 14px;
+    }
+    .chip.active { background: var(--brand); border-color: var(--brand); color: #fff; }
     main { max-width: 760px; margin: 0 auto; padding: 8px 16px 40px; }
-    h2 { font-size: 15px; color: #8e0f42; margin: 22px 4px 8px; }
-    .list { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; }
-    .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-top: 1px solid #e5e7eb; }
-    .item:first-child { border-top: 0; }
-    .item .name { font-weight: bold; }
-    .item .unit { font-size: 13px; color: #6b7280; }
-    .item .price { margin-left: 12px; font-weight: bold; font-size: 17px; color: #8e0f42; white-space: nowrap; }
-    .empty { text-align: center; color: #6b7280; padding: 40px 0; }
-    .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 20; background: rgba(15, 17, 23, .75); overflow-y: auto; }
-    .sheet { background: #fff; max-width: 520px; margin: 40px auto 0; border-radius: 18px; padding: 18px 16px 24px; }
+    h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .6px; color: var(--brand-dark); margin: 22px 4px 8px; }
+    .list { background: var(--card); border-radius: var(--radius); border: 1px solid var(--line); overflow: hidden; }
+    .item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; }
+    .item + .item { border-top: 1px solid var(--line); }
+    .item .name { font-weight: 500; }
+    .item .unit { font-size: 13px; color: var(--muted); }
+    .item .price { font-weight: 700; font-size: 17px; color: var(--brand-dark); }
+    .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+    .search-row { display: flex; gap: 8px; }
+    .scan-btn {
+      flex: none; border: 0; border-radius: 8px; background: var(--brand); color: #fff;
+      padding: 0 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;
+    }
+    .scan-btn svg { width: 22px; height: 22px; }
+    .modal { position: fixed; inset: 0; z-index: 20; background: rgba(15, 17, 23, .75); display: flex; align-items: flex-end; justify-content: center; }
+    .sheet { background: #fff; width: 100%; max-width: 520px; border-radius: 18px 18px 0 0; padding: 18px 16px 24px; max-height: 92vh; overflow-y: auto; }
+    @media (min-width: 560px) { .modal { align-items: center; } .sheet { border-radius: 18px; } }
     .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
     .sheet-head h3 { margin: 0; }
-    .close { border: 0; background: #f6f7f9; width: 40px; height: 40px; border-radius: 20px; font-size: 18px; }
+    .close { border: 0; background: var(--bg); width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; }
     #reader { width: 100%; border-radius: 12px; overflow: hidden; background: #000; min-height: 220px; }
     #reader video { width: 100% !important; }
-    .scan-hint { text-align: center; color: #6b7280; font-size: 14px; margin: 10px 0; }
-    .photo-btn { display: block; text-align: center; width: 100%; padding: 12px; border: 1px dashed #c2185b; border-radius: 10px; color: #c2185b; font-weight: bold; background: #fff; }
+    .scan-hint { text-align: center; color: var(--muted); font-size: 14px; margin: 10px 0; }
+    .photo-btn { display: block; text-align: center; width: 100%; padding: 12px; border: 1px dashed var(--brand); border-radius: 10px; color: var(--brand); font-weight: 600; cursor: pointer; }
     .result { text-align: center; padding: 10px 0 4px; }
-    .r-cat { color: #6b7280; font-size: 14px; }
-    .r-name { font-size: 22px; font-weight: bold; margin: 4px 0; }
-    .r-price { font-size: 40px; font-weight: bold; color: #8e0f42; margin: 6px 0; }
-    .r-code { font-size: 13px; color: #6b7280; letter-spacing: 1px; }
-    .notfound .r-name { color: #b91c1c; font-size: 18px; }
-    .again { margin-top: 16px; border: 0; border-radius: 8px; background: #c2185b; color: #fff; padding: 10px 16px; }
-    footer { text-align: center; color: #6b7280; font-size: 13px; padding: 10px 16px 30px; }
-    footer a { color: #c2185b; }
-    #err { color: #b91c1c; font-size: 12px; padding: 0 16px 20px; word-break: break-all; }
+    .result .r-cat { color: var(--muted); font-size: 14px; }
+    .result .r-name { font-size: 22px; font-weight: 700; margin: 4px 0; }
+    .result .r-price { font-size: 40px; font-weight: 800; color: var(--brand-dark); margin: 6px 0; }
+    .result .r-code { font-size: 13px; color: var(--muted); letter-spacing: 1px; }
+    .result.notfound .r-name { color: var(--danger); font-size: 18px; }
+    .result .again { margin-top: 16px; }
+    footer { text-align: center; color: var(--muted); font-size: 13px; padding: 10px 16px 30px; }
+    footer a { color: var(--brand); }
   </style>
 </head>
 <body>
@@ -60,148 +67,112 @@
 
   <div class="toolbar">
     <div class="search-row">
-      <input id="search" type="text" placeholder="Ürün ara… (örn. defter, kalem)" autocomplete="off">
-      <button class="scan-btn" id="scan-open" type="button">Okut</button>
+      <input id="search" type="search" placeholder="Ürün ara… (örn. defter, kalem)" autocomplete="off">
+      <button class="scan-btn" id="scan-open" aria-label="Barkod veya karekod okut">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>
+        Okut
+      </button>
     </div>
     <div class="chips" id="chips"></div>
   </div>
 
   <main id="catalog"><p class="empty">Yükleniyor…</p></main>
 
+  <div class="modal hidden" id="scan-modal">
+    <div class="sheet">
+      <div class="sheet-head"><h3 id="scan-title">Barkod / karekod okut</h3><button class="close" id="scan-close" aria-label="Kapat">✕</button></div>
+      <div id="scan-area">
+        <div id="reader"></div>
+        <p class="scan-hint" id="scan-hint">Kamerayı ürünün barkoduna veya karekoduna tutun.</p>
+        <label class="photo-btn">📷 Fotoğraf çekerek okut
+          <input type="file" id="scan-photo" accept="image/*" capture="environment" hidden></label>
+      </div>
+      <div id="scan-result" class="hidden"></div>
+    </div>
+  </div>
+
   <footer>
     <div id="contact"></div>
     <div id="updated"></div>
   </footer>
-  <div id="err"></div>
 
   <script>
-    // Bir hata olursa sayfa boş kalmasın, hatanın ne olduğu altta görünsün.
-    window.onerror = function (msg, src, line) {
-      var el = document.getElementById('err');
-      if (el) el.textContent = 'Hata: ' + msg + ' (' + line + ')';
-    };
-
-    var $ = function (id) { return document.getElementById(id); };
-    var products = [];
-    var categories = [];
-    var activeCategory = '';
-
-    function esc(s) {
-      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-
-    // 1234.5 -> "₺1.234,50"
-    function money(n) {
-      var parts = (Math.round(Number(n) * 100) / 100).toFixed(2).split('.');
-      return '₺' + parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + parts[1];
-    }
-
-    // Türkçe küçük harf (İ→i, I→ı) - aramada büyük/küçük harf farkı olmasın
-    function norm(s) {
-      return String(s || '').replace(/İ/g, 'i').replace(/I/g, 'ı').toLowerCase();
-    }
-
-    function catOrder(c) {
-      var i = categories.indexOf(c);
-      return i < 0 ? 999 : i;
-    }
-
-    function byName(a, b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0; }
+    const fmt = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' });
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const norm = (s) => s.toLocaleLowerCase('tr-TR');
+    let products = [];
+    let categories = [];
+    let activeCategory = '';
 
     function render() {
-      var q = norm($('search').value.replace(/^\s+|\s+$/g, ''));
-      var groups = {}, cats = [], count = 0;
-      for (var i = 0; i < products.length; i++) {
-        var p = products[i];
-        if (activeCategory && p.category !== activeCategory) continue;
-        if (q && norm(p.name).indexOf(q) < 0 && norm(p.category).indexOf(q) < 0 &&
-            !(p.barcode && String(p.barcode).indexOf(q) >= 0)) continue;
-        if (!groups[p.category]) { groups[p.category] = []; cats.push(p.category); }
-        groups[p.category].push(p);
-        count++;
-      }
-      if (!count) { $('catalog').innerHTML = '<p class="empty">Aradığınız ürün bulunamadı.</p>'; return; }
-      cats.sort(function (a, b) { return catOrder(a) - catOrder(b) || (a < b ? -1 : a > b ? 1 : 0); });
-      var html = '';
-      for (var c = 0; c < cats.length; c++) {
-        var list = groups[cats[c]].sort(byName);
-        html += '<h2>' + esc(cats[c]) + '</h2><div class="list">';
-        for (var j = 0; j < list.length; j++) {
-          html += '<div class="item"><div><div class="name">' + esc(list[j].name) + '</div><div class="unit">' +
-            esc(list[j].unit) + '</div></div><div class="price">' + money(list[j].price) + '</div></div>';
-        }
-        html += '</div>';
-      }
-      $('catalog').innerHTML = html;
+      const q = norm(document.getElementById('search').value.trim());
+      const filtered = products.filter((p) =>
+        (!activeCategory || p.category === activeCategory) &&
+        (!q || norm(p.name).includes(q) || norm(p.category).includes(q) || (p.barcode && p.barcode.includes(q))));
+
+      const groups = {};
+      for (const p of filtered) (groups[p.category] ||= []).push(p);
+      const order = (c) => (categories.includes(c) ? categories.indexOf(c) : 999);
+
+      const el = document.getElementById('catalog');
+      if (!filtered.length) { el.innerHTML = '<p class="empty">Aradığınız ürün bulunamadı.</p>'; return; }
+      el.innerHTML = Object.keys(groups).sort((a, b) => order(a) - order(b) || a.localeCompare(b, 'tr')).map((cat) => `
+        <h2>${esc(cat)}</h2>
+        <div class="list">
+          ${groups[cat].sort((a, b) => a.name.localeCompare(b.name, 'tr')).map((p) => `
+            <div class="item">
+              <div><div class="name">${esc(p.name)}</div><div class="unit">${esc(p.unit)}</div></div>
+              <div class="price money">${fmt.format(p.price)}</div>
+            </div>`).join('')}
+        </div>`).join('');
     }
 
     function renderChips() {
-      var html = '<button type="button" class="chip' + (activeCategory ? '' : ' active') + '" data-cat="">Tümü</button>';
-      for (var i = 0; i < categories.length; i++) {
-        var c = categories[i], used = false;
-        for (var j = 0; j < products.length; j++) if (products[j].category === c) { used = true; break; }
-        if (!used) continue;
-        html += '<button type="button" class="chip' + (c === activeCategory ? ' active' : '') + '" data-cat="' + esc(c) + '">' + esc(c) + '</button>';
-      }
-      $('chips').innerHTML = html;
+      const cats = categories.filter((c) => products.some((p) => p.category === c));
+      const chips = document.getElementById('chips');
+      chips.innerHTML = ['', ...cats].map((c) =>
+        `<button class="chip${c === activeCategory ? ' active' : ''}" data-cat="${esc(c)}">${c ? esc(c) : 'Tümü'}</button>`).join('');
     }
 
-    $('chips').onclick = function (e) {
-      var t = e.target;
-      if (!t || t.className.indexOf('chip') < 0) return;
-      activeCategory = t.getAttribute('data-cat');
+    document.getElementById('chips').addEventListener('click', (e) => {
+      const btn = e.target.closest('.chip');
+      if (!btn) return;
+      activeCategory = btn.dataset.cat;
       renderChips();
       render();
-    };
-    $('search').oninput = render;
-
-    function getJSON(url, ok, fail) {
-      var x = new XMLHttpRequest();
-      x.open('GET', url, true);
-      x.onload = function () {
-        var data = null;
-        if (x.status === 200 && (x.getResponseHeader('Content-Type') || '').indexOf('json') >= 0) {
-          try { data = JSON.parse(x.responseText); } catch (e) { data = null; }
-        }
-        if (data) ok(data); else fail();
-      };
-      x.onerror = fail;
-      x.send();
-    }
+    });
+    document.getElementById('search').addEventListener('input', render);
 
     // Dükkân bilgisayarında canlı veri /api/catalog'dan gelir; internetteki sitede (Cloudflare Pages)
     // sunucu olmadığı için yayınlanmış catalog.json dosyası okunur.
-    function loadCatalog(done) {
-      if (window.__CATALOG__) return done(window.__CATALOG__); // tek dosyalık sürüm
-      var failed = function () {
-        $('catalog').innerHTML = '<p class="empty">Fiyat listesi yüklenemedi. Lütfen sayfayı yenileyin.</p>';
-      };
-      var fromFile = function () { getJSON('catalog.json?t=' + new Date().getTime(), done, failed); };
-      if (/\.(pages\.dev|github\.io)$/.test(location.hostname)) fromFile();
-      else getJSON('/api/catalog', done, fromFile);
+    async function loadCatalog() {
+      if (window.__CATALOG__) return window.__CATALOG__; // tek dosyalık sürüm
+      try {
+        const r = await fetch('/api/catalog');
+        if (r.ok && r.headers.get('content-type')?.includes('json')) return await r.json();
+      } catch {}
+      const r = await fetch('catalog.json?t=' + Date.now());
+      if (!r.ok) throw new Error('Katalog bulunamadı');
+      return r.json();
     }
 
-    loadCatalog(function (data) {
-      var s = data.settings || {};
-      products = data.products || [];
-      categories = data.categories || [];
-      if (s.shopName) {
-        document.title = s.shopName + ' - Fiyat Listesi';
-        $('shop-name').textContent = s.shopName;
-      }
-      $('slogan').textContent = s.slogan || '';
-      var contact = [];
-      if (s.address) contact.push(esc(s.address));
-      if (s.phone) contact.push('<a href="tel:' + esc(s.phone) + '">' + esc(s.phone) + '</a>');
-      $('contact').innerHTML = contact.join(' · ');
-      var last = '';
-      for (var i = 0; i < products.length; i++) if (products[i].updatedAt > last) last = products[i].updatedAt;
-      var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(last);
-      if (m) $('updated').textContent = 'Fiyatlar son güncelleme: ' + m[3] + '.' + m[2] + '.' + m[1] + ' · Fiyatlara KDV dahildir.';
+    loadCatalog().then(({ settings, categories: cats, products: list }) => {
+      products = list;
+      categories = cats || [];
+      document.title = settings.shopName + ' - Fiyat Listesi';
+      document.getElementById('shop-name').textContent = settings.shopName;
+      document.getElementById('slogan').textContent = settings.slogan;
+      const contact = [settings.address, settings.phone && `<a href="tel:${esc(settings.phone)}">${esc(settings.phone)}</a>`]
+        .filter(Boolean).map((x) => x.startsWith('<a') ? x : esc(x)).join(' · ');
+      document.getElementById('contact').innerHTML = contact;
+      const last = list.reduce((m, p) => (p.updatedAt > m ? p.updatedAt : m), '');
+      if (last) document.getElementById('updated').textContent =
+        'Fiyatlar son güncelleme: ' + new Date(last).toLocaleDateString('tr-TR') + ' · Fiyatlara KDV dahildir.';
       renderChips();
       render();
       openFromLink();
+    }).catch(() => {
+      document.getElementById('catalog').innerHTML = '<p class="empty">Fiyat listesi yüklenemedi. Lütfen tekrar deneyin.</p>';
     });
 
     // ---------- Kamerayla barkod okutma ----------
@@ -209,175 +180,155 @@
     // her yeni kodda sonuç kameranın altında güncellenir, düğmeye basmak gerekmez.
     // Canlı kamera yalnızca HTTPS (veya localhost) üzerinde açılabilir; yerel ağda (http://192.168…)
     // tarayıcılar kamerayı engeller. O durumda "fotoğraf çekerek okut" yöntemi kullanılır.
-    var scanner = null, libLoading = null, lastCode = '', lastTime = 0;
-
-    // Okutma penceresi sayfa açılışında değil, ilk kez "Okut"a basılınca oluşturulur.
-    function ensureModal() {
-      if ($('scan-modal')) return;
-      var m = document.createElement('div');
-      m.id = 'scan-modal';
-      m.className = 'modal hidden';
-      m.innerHTML = '<div class="sheet">' +
-        '<div class="sheet-head"><h3 id="scan-title">Barkod / karekod okut</h3><button type="button" class="close" id="scan-close">X</button></div>' +
-        '<div id="scan-area"><div id="reader"></div>' +
-        '<p class="scan-hint" id="scan-hint">Kamerayı ürünün barkoduna veya karekoduna tutun.</p>' +
-        '<button type="button" class="photo-btn" id="scan-photo-btn">Fotoğraf çekerek okut</button>' +
-        '<input type="file" id="scan-photo" accept="image/*" class="hidden"></div>' +
-        '<div id="scan-result" class="hidden"></div></div>';
-      document.body.appendChild(m);
-      $('scan-close').onclick = closeScanner;
-      m.onclick = function (e) { if (e.target === m) closeScanner(); };
-      $('scan-result').onclick = function (e) { if (e.target && e.target.getAttribute('data-again') !== null) openScanner(); };
-      $('scan-photo-btn').onclick = function () { $('scan-photo').click(); };
-      $('scan-photo').onchange = onPhoto;
-    }
+    let scanner = null;
+    let libLoading = null;
+    let lastCode = '', lastTime = 0;
+    const $s = (id) => document.getElementById(id);
 
     function loadScannerLib() {
       if (window.Html5Qrcode) return Promise.resolve();
-      if (!libLoading) libLoading = new Promise(function (resolve, reject) {
-        var s = document.createElement('script');
-        s.src = 'vendor/html5-qrcode.min.js';
+      libLoading ||= new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = '/vendor/html5-qrcode.min.js';
         s.onload = resolve;
-        s.onerror = function () { libLoading = null; reject(new Error('Okuyucu yüklenemedi')); };
+        s.onerror = () => reject(new Error('Okuyucu yüklenemedi'));
         document.head.appendChild(s);
       });
       return libLoading;
     }
 
-    function getScanner() {
-      if (scanner) return scanner;
-      var F = window.Html5QrcodeSupportedFormats;
-      scanner = new window.Html5Qrcode('reader', {
+    function createScanner() {
+      const F = Html5QrcodeSupportedFormats;
+      return new Html5Qrcode('reader', {
         verbose: false,
         formatsToSupport: [
           // Düz barkodlar
           F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.CODE_128, F.CODE_39, F.CODE_93, F.CODABAR, F.ITF,
           // Kare (2 boyutlu) kodlar
-          F.QR_CODE, F.DATA_MATRIX, F.AZTEC, F.PDF_417
+          F.QR_CODE, F.DATA_MATRIX, F.AZTEC, F.PDF_417,
         ],
-        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
       });
-      return scanner;
     }
 
-    function canLiveScan() {
-      return !!(window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-    }
+    const canLiveScan = () => window.isSecureContext && navigator.mediaDevices?.getUserMedia;
 
-    function stopScanner() {
-      if (scanner && scanner.isScanning) return scanner.stop().then(null, function () {});
-      return Promise.resolve();
+    async function stopScanner() {
+      if (scanner?.isScanning) { try { await scanner.stop(); } catch {} }
     }
 
     // Okunan metinden ürünü bul: doğrudan barkod ya da ürün QR etiketindeki bağlantı (?b=… / ?u=…)
-    function findBy(key, val) {
-      for (var i = 0; i < products.length; i++) if (products[i][key] && String(products[i][key]) === val) return products[i];
-      return null;
-    }
-
     function findProduct(text) {
-      var code = String(text).replace(/^\s+|\s+$/g, '');
-      var m = /[?&](b|u)=([^&#]+)/.exec(code);
-      if (/^https?:\/\//.test(code) && m) {
-        var v = decodeURIComponent(m[2].replace(/\+/g, ' '));
-        return m[1] === 'b' ? { code: v, product: findBy('barcode', v) } : { code: '', product: findBy('id', v) };
-      }
-      return { code: code, product: findBy('barcode', code) };
+      const code = text.trim();
+      try {
+        const url = new URL(code);
+        const b = url.searchParams.get('b'), u = url.searchParams.get('u');
+        if (b) return { code: b, product: products.find((x) => x.barcode === b) };
+        if (u) return { code: '', product: products.find((x) => x.id === u) };
+      } catch {}
+      return { code, product: products.find((x) => x.barcode && x.barcode === code) };
     }
 
-    function showResult(r, live) {
-      var box = $('scan-result'), p = r.product;
-      box.className = '';
-      var again = live ? '' : '<button type="button" class="again" data-again="1">Başka ürün okut</button>';
+    function showResult({ code, product: p }, live) {
+      const box = $s('scan-result');
+      box.classList.remove('hidden');
+      const again = live ? '' : '<button class="btn primary again" data-again>Başka ürün okut</button>';
       if (p) {
-        $('scan-title').textContent = 'Ürün bulundu';
-        box.innerHTML = '<div class="result"><div class="r-cat">' + esc(p.category) + '</div>' +
-          '<div class="r-name">' + esc(p.name) + '</div>' +
-          '<div class="r-price">' + money(p.price) + '</div>' +
-          '<div class="muted">' + esc(p.unit) + ' fiyatı</div>' +
-          (r.code ? '<div class="r-code">' + esc(r.code) + '</div>' : '') + again + '</div>';
+        $s('scan-title').textContent = 'Ürün bulundu';
+        box.innerHTML = `<div class="result">
+          <div class="r-cat">${esc(p.category)}</div>
+          <div class="r-name">${esc(p.name)}</div>
+          <div class="r-price money">${fmt.format(p.price)}</div>
+          <div class="muted">${esc(p.unit)} fiyatı</div>
+          ${code ? `<div class="r-code">${esc(code)}</div>` : ''}${again}</div>`;
       } else {
-        $('scan-title').textContent = 'Ürün bulunamadı';
-        box.innerHTML = '<div class="result notfound"><div class="r-name">Bu kod listemizde kayıtlı değil.</div>' +
-          '<p class="muted">Fiyat bilgisi için lütfen kasaya sorun.</p>' +
-          '<div class="r-code">' + esc(r.code) + '</div>' + again + '</div>';
+        $s('scan-title').textContent = 'Ürün bulunamadı';
+        box.innerHTML = `<div class="result notfound">
+          <div class="r-name">Bu kod listemizde kayıtlı değil.</div>
+          <p class="muted">Fiyat bilgisi için lütfen kasaya sorun.</p>
+          <div class="r-code">${esc(code)}</div>${again}</div>`;
       }
     }
 
     function onLiveScanned(text) {
       // Kamera aynı kodu saniyede birçok kez görür; aynı kodu 2 saniye içinde tekrar gösterme.
-      var now = new Date().getTime();
+      const now = Date.now();
       if (text === lastCode && now - lastTime < 2000) return;
       lastCode = text; lastTime = now;
       if (navigator.vibrate) navigator.vibrate(60);
       showResult(findProduct(text), true);
-      $('scan-hint').textContent = 'Başka bir ürün okutmak için kamerayı o ürünün koduna tutun.';
+      $s('scan-hint').textContent = 'Başka bir ürün okutmak için kamerayı o ürünün koduna tutun.';
     }
 
-    function startLive() {
+    async function startLive() {
+      $s('reader').classList.toggle('hidden', !canLiveScan());
       if (!canLiveScan()) {
-        $('reader').className = 'hidden';
-        $('scan-hint').textContent = 'Aşağıdaki düğmeye basıp ürünün barkodunun veya karekodunun fotoğrafını çekin.';
+        $s('scan-hint').textContent = 'Aşağıdaki düğmeye basıp ürünün barkodunun veya karekodunun fotoğrafını çekin.';
         return;
       }
-      $('reader').className = '';
-      $('scan-hint').textContent = 'Kamerayı ürünün barkoduna veya karekoduna tutun, kendiliğinden okunur.';
-      return getScanner().start({ facingMode: 'environment' }, {
-        fps: 12,
-        // Hem düz hem kare kodlar sığsın diye geniş, kareye yakın bir okuma alanı
-        qrbox: function (w, h) {
-          var side = Math.min(w, h);
-          return { width: Math.round(Math.min(w * 0.9, side * 1.2)), height: Math.round(side * 0.7) };
-        }
-      }, onLiveScanned, function () {}).then(null, function () {
-        $('reader').className = 'hidden';
-        $('scan-hint').textContent = 'Kamera açılamadı. Fotoğraf çekerek okutabilirsiniz.';
-      });
+      $s('scan-hint').textContent = 'Kamerayı ürünün barkoduna veya karekoduna tutun, kendiliğinden okunur.';
+      try {
+        await scanner.start({ facingMode: 'environment' }, {
+          fps: 12,
+          // Hem düz hem kare kodlar sığsın diye geniş, kareye yakın bir okuma alanı
+          qrbox: (w, h) => { const side = Math.min(w, h); return { width: Math.round(Math.min(w * 0.9, side * 1.2)), height: Math.round(side * 0.7) }; },
+          videoConstraints: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        }, onLiveScanned, () => {});
+      } catch {
+        $s('reader').classList.add('hidden');
+        $s('scan-hint').textContent = 'Kamera açılamadı. Fotoğraf çekerek okutabilirsiniz.';
+      }
     }
 
-    function openScanner() {
-      ensureModal();
+    async function openScanner() {
       lastCode = '';
-      $('scan-modal').className = 'modal';
-      $('scan-area').className = '';
-      $('scan-result').className = 'hidden';
-      $('scan-title').textContent = 'Barkod / karekod okut';
-      stopScanner().then(loadScannerLib).then(startLive).then(null, function () {
-        $('scan-hint').textContent = 'Okuyucu yüklenemedi. Sayfayı yenileyip tekrar deneyin.';
-      });
+      $s('scan-modal').classList.remove('hidden');
+      $s('scan-area').classList.remove('hidden');
+      $s('scan-result').classList.add('hidden');
+      $s('scan-title').textContent = 'Barkod / karekod okut';
+      try {
+        await loadScannerLib();
+        scanner ||= createScanner();
+        await startLive();
+      } catch {
+        $s('scan-hint').textContent = 'Okuyucu yüklenemedi. Sayfayı yenileyip tekrar deneyin.';
+      }
     }
 
-    function closeScanner() {
-      stopScanner();
-      $('scan-modal').className = 'modal hidden';
-      if (location.search && window.history.replaceState) history.replaceState(null, '', location.pathname);
+    async function closeScanner() {
+      await stopScanner();
+      $s('scan-modal').classList.add('hidden');
+      if (location.search) history.replaceState(null, '', location.pathname);
     }
 
-    function onPhoto(e) {
-      var file = e.target.files && e.target.files[0];
+    $s('scan-open').addEventListener('click', openScanner);
+    $s('scan-close').addEventListener('click', closeScanner);
+    $s('scan-modal').addEventListener('click', (e) => { if (e.target.id === 'scan-modal') closeScanner(); });
+    $s('scan-result').addEventListener('click', (e) => { if (e.target.closest('[data-again]')) openScanner(); });
+
+    $s('scan-photo').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
       if (!file) return;
-      $('scan-hint').textContent = 'Okunuyor…';
-      stopScanner().then(loadScannerLib).then(function () {
-        return getScanner().scanFile(file, false);
-      }).then(function (text) {
-        e.target.value = '';
-        $('scan-area').className = 'hidden';
+      await stopScanner();
+      $s('scan-hint').textContent = 'Okunuyor…';
+      try {
+        await loadScannerLib();
+        scanner ||= createScanner();
+        const text = await scanner.scanFile(file, false);
+        $s('scan-area').classList.add('hidden');
         showResult(findProduct(text), false);
-      }, function () {
-        e.target.value = '';
-        $('scan-hint').textContent = 'Kod okunamadı. Koda daha yakından, net ve ışıklı bir fotoğraf çekin.';
-      });
-    }
-
-    $('scan-open').onclick = openScanner;
+      } catch {
+        $s('scan-hint').textContent = 'Kod okunamadı. Koda daha yakından, net ve ışıklı bir fotoğraf çekin.';
+      }
+    });
 
     // Ürün QR etiketi telefonun kendi kamerasıyla okutulunca sayfa ?b=… veya ?u=… ile açılır:
     // ürünü doğrudan göster.
     function openFromLink() {
       if (!/[?&](b|u)=/.test(location.search)) return;
-      ensureModal();
-      $('scan-modal').className = 'modal';
-      $('scan-area').className = 'hidden';
+      $s('scan-modal').classList.remove('hidden');
+      $s('scan-area').classList.add('hidden');
       showResult(findProduct(location.href), false);
     }
   </script>
