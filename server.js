@@ -13,7 +13,8 @@ const { exec } = require('child_process');
 
 let PORT = Number(process.env.PORT) || 3000;
 const START_PORT = PORT;
-const SITE_URL = 'https://serhanicoz389-a11y.github.io/g-lendirme/';
+const SITE_URL = 'https://dilekofis.github.io/';
+const SITE_REPO = 'dilekofis/dilekofis.github.io';
 const LOG_FILE = path.join(__dirname, 'hata-kaydi.txt');
 
 // Beklenmeyen hatalar hem ekrana hem hata-kaydi.txt dosyasına yazılır.
@@ -37,7 +38,7 @@ const DEFAULT_SETTINGS = {
   publicUrl: SITE_URL,
   orderNo: 1,
   // İnternette yayınlama (GitHub + Cloudflare Pages)
-  githubRepo: 'serhanicoz389-a11y/g-lendirme',
+  githubRepo: SITE_REPO,
   githubBranch: 'main',
   githubToken: '',
   siteUrl: SITE_URL,
@@ -63,12 +64,15 @@ function writeJson(file, data) {
 
 const loadProducts = () => readJson(PRODUCTS_FILE, []);
 const saveProducts = (list) => { writeJson(PRODUCTS_FILE, list); schedulePublish(); };
-// Eski adres (pages.dev) bazı internet şirketlerinde açılmıyor; kayıtlı ayarlarda varsa yenisine çevir.
-const OLD_SITE_URL = /^https?:\/\/dilekofis\.pages\.dev\/?$/;
+// Eski adresler (pages.dev bazı internet şirketlerinde açılmıyor; ardından github.io/g-lendirme) kayıtlı ayarlarda
+// varsa yenisine çevrilir. Site artık "dilekofis" kuruluşunun dilekofis.github.io deposundan yayınlanır.
+const OLD_SITE_URL = /^https?:\/\/(dilekofis\.pages\.dev|serhanicoz389-a11y\.github\.io\/g-lendirme)\/?$/;
+const OLD_SITE_REPO = 'serhanicoz389-a11y/g-lendirme';
 function loadSettings() {
   const s = { ...DEFAULT_SETTINGS, ...readJson(SETTINGS_FILE, {}) };
   if (OLD_SITE_URL.test(s.siteUrl || '')) s.siteUrl = SITE_URL;
   if (OLD_SITE_URL.test(s.publicUrl || '')) s.publicUrl = SITE_URL;
+  if ((s.githubRepo || '').trim() === OLD_SITE_REPO) s.githubRepo = SITE_REPO;
   return s;
 }
 const saveSettings = (s) => writeJson(SETTINGS_FILE, s);
